@@ -10,6 +10,29 @@ import { IconeX, eAudio, eVideo } from './comum'
 type Arquivo = { nome: string; subpasta: string }
 
 /** Opens the viewer on this file, with every file on the page as its neighbours. */
+/** Imagem que comeca inteira na tela (fit); zoom pela roda ou botoes, arrasta para mover. */
+function ImagemZoom({ src }: { src: string }) {
+  const [z, setZ] = useState(1)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const arrasto = useRef<{ x: number; y: number } | null>(null)
+  const mudar = (nz: number) => { const v = Math.min(8, Math.max(1, nz)); setZ(v); if (v === 1) setPos({ x: 0, y: 0 }) }
+  return (
+    <div className="hf-vis-zoom" data-zoom={z > 1 ? '1' : undefined}
+      onWheel={(e) => mudar(z * (e.deltaY < 0 ? 1.15 : 1 / 1.15))}
+      onDoubleClick={() => mudar(z > 1 ? 1 : 2)}
+      onPointerDown={(e) => { if (z > 1) { arrasto.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }; (e.target as Element).setPointerCapture(e.pointerId) } }}
+      onPointerMove={(e) => { if (arrasto.current) setPos({ x: e.clientX - arrasto.current.x, y: e.clientY - arrasto.current.y }) }}
+      onPointerUp={() => { arrasto.current = null }}>
+      <img src={src} alt="" draggable={false} style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${z})` }} />
+      <div className="hf-vis-zoombar" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+        <button onClick={() => mudar(z / 1.25)} aria-label="Zoom out">−</button>
+        <button onClick={() => mudar(1)} aria-label="Fit">{Math.round(z * 100)}%</button>
+        <button onClick={() => mudar(z * 1.25)} aria-label="Zoom in">+</button>
+      </div>
+    </div>
+  )
+}
+
 export function abrirVisualizador(atual: Arquivo) {
   const lista: Arquivo[] = [...document.querySelectorAll<HTMLElement>('[data-midia]')]
     .map((e) => ({ nome: e.dataset.nome!, subpasta: e.dataset.subpasta! }))
@@ -182,7 +205,7 @@ export default function Visualizador() {
           {comparar && origem ? <ThenNow key={url + comparar} antes={origem} depois={url} modo={comparar} />
             : eVideo(atual.nome) ? <video key={url} src={url} controls autoPlay loop playsInline />
             : eAudio(atual.nome) ? <audio key={url} src={url} controls autoPlay />
-              : <img src={url} alt="" />}
+              : <ImagemZoom key={url} src={url} />}
           {i < lista.length - 1 && <button className="hf-vis-seta" data-lado="dir" onClick={() => setI(i + 1)} aria-label="Next">›</button>}
           {lista.length > 1 && <span className="hf-vis-conta">{i + 1} / {lista.length}</span>}
         </div>

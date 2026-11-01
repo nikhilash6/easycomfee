@@ -20,6 +20,15 @@ function Corpo({ id }: { id: string }) {
     case 'bolex': // small 16mm body with a 3-lens turret and a crank
       return <g {...P}><rect x="18" y="10" width="18" height="20" rx="3" /><circle cx="42" cy="13" r="3" /><circle cx="44" cy="20" r="3.5" />
         <circle cx="42" cy="27" r="3" /><path d="M18 20h-5l-2 4" /><circle cx="11" cy="24" r="1.5" /></g>
+    case 'iphone': // phone back with a three-lens camera island
+      return <g {...P}><rect x="20" y="4" width="20" height="32" rx="4" /><rect x="23" y="7" width="11" height="11" rx="3" /><circle cx="26" cy="10.5" r="1.8" />
+        <circle cx="31" cy="10.5" r="1.8" /><circle cx="26" cy="15" r="1.8" /><circle cx="31.5" cy="15" r="0.8" /></g>
+    case 'canon5d': // dslr: grip, prism hump, round lens
+      return <g {...P}><path d="M12 14h8l3-4h10l3 4h8v16H12z" /><path d="M12 14v16h6V14" /><circle cx="32" cy="22" r="6" /><circle cx="32" cy="22" r="3" /></g>
+    case 'a7s': // mirrorless: flat top, small hump, grip
+      return <g {...P}><path d="M12 15h10l2-3h8l2 3h10v14H12z" /><path d="M12 15v14h5V15" /><circle cx="32" cy="22" r="5.5" /><circle cx="32" cy="22" r="2.5" /><circle cx="40" cy="12.5" r="1.2" /></g>
+    case 'super8': // home movie camera: slanted body, pistol grip
+      return <g {...P}><path d="M14 12h22l4 4v8H14z" /><path d="M40 16l8-2v12l-8-2" /><path d="M20 24l-2 10h6l2-10" /><rect x="10" y="14" width="4" height="5" rx="1" /></g>
     default: // vhs camcorder: cassette door, handle strap, viewfinder
       return <g {...P}><rect x="10" y="13" width="30" height="15" rx="4" /><rect x="15" y="17" width="14" height="7" rx="1" /><circle cx="19" cy="20.5" r="1.3" />
         <circle cx="25" cy="20.5" r="1.3" /><path d="M40 16h8v9h-8" /><path d="M14 13c3-5 18-5 22 0" /><rect x="6" y="9" width="8" height="5" rx="1" /></g>
@@ -38,6 +47,15 @@ function Lente({ id }: { id: string }) {
     case 'macro':
       return <g {...P}><rect x="10" y="13" width="32" height="14" rx="2" /><path d="M16 13v14M36 13v14" /><path d="M44 20h4" />
         <circle cx="52" cy="20" r="3" /><path d="M50 17l-2-3M54 17l2-3" /></g>
+    case 'tilt_shift': // lens body bent at an angle
+      return <g {...P}><rect x="10" y="13" width="14" height="14" rx="2" /><path d="M24 15l4-2v14l-4-2" /><path d="M28 13l14 3v10l-14 3" transform="rotate(-10 28 20)" />
+        <ellipse cx="45" cy="18" rx="3" ry="7" transform="rotate(-10 45 18)" /></g>
+    case 'split': // round glass split in half: one half thicker
+      return <g {...P}><rect x="10" y="13" width="18" height="14" rx="2" /><circle cx="40" cy="20" r="9" /><path d="M40 11v18" /><path d="M42 13a7 7 0 0 1 0 14" /></g>
+    case 'sonda': // long thin probe ending in a tiny lens
+      return <g {...P}><rect x="6" y="13" width="14" height="14" rx="2" /><path d="M20 18h28M20 22h28" /><path d="M48 17l4 1v4l-4 1z" /><circle cx="54" cy="20" r="1.2" /></g>
+    case 'soft': // lens with glow rays
+      return <g {...P}><rect x="10" y="13" width="20" height="14" rx="2" /><circle cx="40" cy="20" r="5" /><path d="M40 10v3M40 27v3M48 20h3M47 13l2-2M47 27l2 2" /></g>
     default: // fisheye: a bulging dome
       return <g {...P}><rect x="14" y="13" width="18" height="14" rx="2" /><path d="M32 10c14 0 14 20 0 20" /><path d="M36 14c6 2 6 10 0 12" /></g>
   }

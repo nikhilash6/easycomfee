@@ -186,6 +186,7 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
 
   // Com foto na caixa, o look usa a versao "foto" (transforma a foto); sem foto, cria do zero.
   const lookAtual = LOOKS.find((l) => l.id === look)
+  const [opcaoLook, setOpcaoLook] = useState('')
   // Look que usa a foto: sem modelo que aceite imagem, passa para o Flux 3 Klein.
   const escolherLook = (l: typeof LOOKS[number]) => {
     if (look === l.id) { setLook(''); return }
@@ -199,7 +200,7 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
   const gerar = async () => {
     setErro(null); setSelecionada(null)  // a imagem nova vai para o palco quando sair
     try {
-      await api.gerar({ ...pedido, prompt: aplicarLook(lookAtual, prompt, comRefs) } as Parameters<typeof api.gerar>[0])
+      await api.gerar({ ...pedido, prompt: aplicarLook(lookAtual, prompt, comRefs, opcaoLook) } as Parameters<typeof api.gerar>[0])
     } catch (e) { setErro(mensagem(e)) }
   }
 
@@ -302,6 +303,12 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
               onChange={(e) => setForcaImagem(Number(e.target.value))} />
             <small className="hf-dica">Low keeps the photo; high keeps only its layout.</small>
           </div>
+        )}
+        {lookAtual?.opcoes && (
+          <label className="hf-campo"><span>{lookAtual.opcoes.rotulo}</span>
+            <select className="hf-select" value={opcaoLook || lookAtual.opcoes.lista[0].id} onChange={(e) => setOpcaoLook(e.target.value)} aria-label={lookAtual.opcoes.rotulo}>
+              {lookAtual.opcoes.lista.map((o) => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+            </select></label>
         )}
         <div className="hf-img-controles">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">

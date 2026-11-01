@@ -3,7 +3,9 @@
 // Flux 3 Klein local em 27/10/2026.
 // comImagem: o look transforma a foto enviada (@image1) em vez de criar do zero.
 // foto: a versao do look para quando ha uma foto na caixa (transforma a foto em vez de criar do zero).
-export type Look = { id: string; rotulo: string; exemplo: string; texto: string; foto?: string; comImagem?: boolean }
+// opcoes: uma escolha extra do look (ex.: onde fica a tatuagem); o texto da opcao entra no lugar de {o}.
+export type Look = { id: string; rotulo: string; exemplo: string; texto: string; foto?: string; comImagem?: boolean
+  opcoes?: { rotulo: string; lista: { id: string; rotulo: string; texto: string }[] } }
 
 export const LOOKS: Look[] = [
   { id: 'poster', rotulo: 'Gallery Poster', exemplo: 'a lighthouse at dawn',
@@ -42,13 +44,38 @@ export const LOOKS: Look[] = [
   { id: 'adesivo', rotulo: 'Sticker Sheet', exemplo: 'a happy avocado',
     texto: 'A sheet of glossy die-cut stickers of {s} in different poses, thick white borders, playful cartoon style, plain light background',
     foto: 'Turn the subject from @image1 into a sheet of glossy die-cut cartoon stickers in different poses, thick white borders, plain light background. {s}' },
+  { id: 'colorir', rotulo: 'Coloring Page', exemplo: 'a friendly dragon in a flower garden',
+    texto: 'A printable coloring book page of {s}: clean black outlines only on pure white paper, no color, no shading, no gray, no fill, closed shapes with large open areas to color in, medium line weight, simple background details, kids coloring book style',
+    foto: 'Turn @image1 into a printable coloring book page: trace the same subject and scene as clean black outlines only on pure white paper, no color, no shading, no gray, no fill, closed shapes with large open areas to color in, medium line weight, coloring book style. {s}' },
+  { id: 'bronze', rotulo: 'Bronze Statue', exemplo: '', comImagem: true,
+    texto: 'Turn the person from @image1 into a life-size cast bronze statue standing on a tall granite pedestal in the middle of a public city square, keeping the same face, hair, outfit and pose, all sculpted in bronze with a warm aged patina and polished highlights. People walking around, pigeons, trees and old buildings in the background, golden afternoon light, realistic photo. {s}' },
+  { id: 'balao', rotulo: 'Balloon Art', exemplo: 'a cute puppy',
+    texto: 'A classic balloon animal sculpture of {s}, instantly recognizable silhouette, built from long twisted modeling balloons with visible twist joints, shiny glossy latex with soft reflections, the real colors of {s}, standing on a clean pastel studio floor, centered, playful product photo',
+    foto: 'Make a classic balloon animal of the same animal, person or object shown in @image1, so anyone can tell what it is: its head, ears, legs and body shaped from long twisted modeling balloons in its real colors, visible twist joints, shiny glossy latex, standing on a clean pastel studio floor, centered, playful product photo. {s}' },
+  { id: 'pontilhismo', rotulo: 'Stipple Art', exemplo: 'an old lighthouse on a rocky cliff',
+    texto: 'A black and white stippling illustration of {s}, made only of thousands of tiny black ink dots on white paper, dense dots for shadows and sparse dots for light, no lines, no gray fills, fine art pen-and-ink pointillism',
+    foto: 'Redraw @image1 as a black and white stippling illustration with the same subject and composition, made only of thousands of tiny black ink dots on white paper, dense dots for shadows and sparse dots for light, no lines, no gray fills, fine art pen-and-ink pointillism. {s}' },
+  { id: 'tatuagem', rotulo: 'Tattoo', exemplo: 'a wolf howling at the moon',
+    texto: 'A realistic close-up photo of a fresh black ink tattoo of {s} on {o}, crisp fine-line linework and shading following the curve of the skin, natural skin texture and pores, soft studio light, tattoo portfolio photo',
+    foto: 'Turn the subject of @image1 into a black ink tattoo design and show it as a realistic close-up photo of a fresh tattoo on {o}, crisp fine-line linework and shading following the curve of the skin, natural skin texture and pores, soft studio light, tattoo portfolio photo. {s}',
+    opcoes: { rotulo: 'Where', lista: [
+      { id: 'antebraco', rotulo: 'Forearm', texto: 'the inner forearm of a person' },
+      { id: 'braco', rotulo: 'Upper arm', texto: 'the upper arm and shoulder of a person' },
+      { id: 'costas', rotulo: 'Back', texto: 'the upper back between the shoulder blades of a person' },
+      { id: 'mao', rotulo: 'Hand', texto: 'the back of the hand of a person' },
+      { id: 'perna', rotulo: 'Leg', texto: 'the calf of a person' },
+      { id: 'peito', rotulo: 'Chest', texto: 'the chest of a person' },
+      { id: 'pescoco', rotulo: 'Neck', texto: 'the side of the neck of a person' },
+    ] } },
   { id: 'estatua', rotulo: 'Desk Figurine', exemplo: '', comImagem: true,
     texto: 'Turn the person from @image1 into a 1/7 scale collectible figurine statue, keeping the face, hair, outfit and pose. The figurine stands on a round clear acrylic base on a tidy wooden office desk, next to a computer monitor and keyboard, with a coffee mug nearby. Realistic product photo of a painted PVC figure, soft daylight from a window, shallow depth of field. {s}' },
 ]
 
 /** O prompt final: o look em volta do assunto (ou do exemplo, se a caixa estiver vazia); com
  *  foto na caixa, a versao do look que transforma a foto (o texto vira um ajuste extra). */
-export const aplicarLook = (look: Look | undefined, assunto: string, comFoto = false) =>
-  !look ? assunto
-    : comFoto && look.foto ? look.foto.replace('{s}', assunto.trim()).trim()
-    : look.texto.replace('{s}', assunto.trim() || look.exemplo).trim()
+export const aplicarLook = (look: Look | undefined, assunto: string, comFoto = false, opcao = '') => {
+  if (!look) return assunto
+  const o = look.opcoes?.lista.find((x) => x.id === opcao)?.texto ?? look.opcoes?.lista[0]?.texto ?? ''
+  return (comFoto && look.foto ? look.foto.replace('{s}', assunto.trim())
+    : look.texto.replace('{s}', assunto.trim() || look.exemplo)).replace('{o}', o).trim()
+}

@@ -10,6 +10,10 @@ export const CAMERAS: Opcao[] = [
   { id: 'imax', rotulo: 'IMAX 70mm film', texto: 'the look of 70mm large-format film, extreme detail, very fine grain, epic scale' },
   { id: 'film35', rotulo: '35mm film', texto: 'the look of 35mm motion picture film, visible film grain, warm halation around highlights' },
   { id: 'bolex', rotulo: '16mm Bolex', texto: 'the look of 16mm film, heavy grain, slightly soft, vintage indie feel' },
+  { id: 'iphone', rotulo: 'iPhone 16 Pro Max', texto: 'the look of a modern flagship smartphone video: crisp computational HDR, deep focus, punchy clean colors, natural handheld feel' },
+  { id: 'canon5d', rotulo: 'Canon 5D', texto: 'the look of a full-frame DSLR: shallow depth of field, warm pleasing skin tones, slightly soft creamy highlights' },
+  { id: 'a7s', rotulo: 'Sony A7S III', texto: 'the look of a full-frame mirrorless low-light camera: clean shadows at night, smooth gradation, modern indie film feel' },
+  { id: 'super8', rotulo: 'Super 8 film', texto: 'the look of Super 8 home movie film: strong grain, faded warm colors, light leaks, gate weave, rounded frame edges' },
   { id: 'vhs', rotulo: 'VHS camcorder', texto: 'the look of a worn 1990s VHS tape recording: low resolution, smeared colors bleeding past edges, horizontal scan lines, tracking noise, washed-out blacks' },
 ]
 
@@ -18,6 +22,10 @@ export const LENTES: Opcao[] = [
   { id: 'anamorfica', rotulo: 'Anamorphic', texto: 'anamorphic lens, oval bokeh, faint horizontal streaks only on bright street lights, widescreen cinematic feel' },
   { id: 'vintage', rotulo: 'Vintage', texto: 'vintage lens, swirly bokeh, soft glow, lower contrast' },
   { id: 'macro', rotulo: 'Macro', texto: 'macro lens, extreme close detail, razor-thin focus plane' },
+  { id: 'tilt_shift', rotulo: 'Tilt-shift', texto: 'tilt-shift lens, a thin diagonal band of sharp focus with strong blur above and below, miniature model effect' },
+  { id: 'split', rotulo: 'Split diopter', texto: 'split diopter lens, a near subject and a far subject both sharp at the same time, a faint soft line between them' },
+  { id: 'sonda', rotulo: 'Probe lens', texto: 'probe lens, tiny lens tip very close to the subject, bug-eye perspective, deep focus, wide distorted background' },
+  { id: 'soft', rotulo: 'Soft focus', texto: 'soft focus diffusion filter, dreamy glow blooming around highlights, gentle low-contrast haze' },
   { id: 'olho_peixe', rotulo: 'Fisheye', texto: 'fisheye lens, strong barrel distortion, ultra-wide curved horizon' },
 ]
 

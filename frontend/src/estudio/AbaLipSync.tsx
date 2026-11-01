@@ -12,10 +12,12 @@ import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTar
 
 export type ModeloLipSync = { id: string; rotulo: string; limite: number }
 
-const ABERTOS: ModeloLipSync[] = [{ id: 'ltx23', rotulo: 'LTX 2.3', limite: 30 }]
+// LongCat 1.5 so roda na placa (nao existe no Comfy Cloud); o pacote e o "avatar" do Config Models.
+const ABERTOS: (ModeloLipSync & { soLocal?: boolean })[] = [{ id: 'ltx23', rotulo: 'LTX 2.3', limite: 30 }, { id: 'longcat', rotulo: 'LongCat 1.5', limite: 15, soLocal: true }]
 
 const DESCRICOES: Record<string, string> = {
   ltx23: 'Open weights. Natural lips and head motion, up to 30 s.',
+  longcat: 'Open weights, your GPU only. Long talking portraits at 832×480, up to 15 s; slower than LTX.',
   kling: 'Broadcast-style presenter from one photo.',
   heygen: 'HeyGen Avatar IV: expressive face and gestures, 1080p.',
   sync: 'sync.so sync-3: precise lip sync, keeps the photo intact.',
@@ -148,7 +150,7 @@ export default function AbaLipSync({ apiModelos }: { apiModelos: ModeloLipSync[]
 
         <div className="hf-linha-controles hf-lsn-barra">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">
-            <GruposAbertos itens={ABERTOS.map((m) => ({ id: m.id, rotulo: m.rotulo }))} api={apiModelos} />
+            <GruposAbertos itens={ABERTOS.map((m) => ({ id: m.id, rotulo: m.rotulo, soLocal: m.soLocal }))} api={apiModelos} />
           </select></label>
           <span className="hf-dica">{DESCRICOES[cfg.id]}</span>
           {ocupado && <span className="hf-dica">{ocupado}</span>}
