@@ -288,8 +288,8 @@ export default function Estudio() {
         </div>
       )}
       {verModelos && <TelaModelos abaInicial={verModelos}
-        topoLocais={<label className="mq-check"><input type="checkbox" checked={ocultar} onChange={(e) => mudarOcultar(e.target.checked)} />
-          <span>Hide the models that are not installed from the model menus (otherwise they show greyed out).</span></label>} fechar={() => { setVerModelos(false); setVersao((v) => v + 1) }}
+        topoLocais={<label className="mq-filtro"><input type="checkbox" checked={ocultar} onChange={(e) => mudarOcultar(e.target.checked)} />
+          Hide the models that are not installed from the model menus (otherwise they show greyed out)</label>} fechar={() => { setVerModelos(false); setVersao((v) => v + 1) }}
         conta={<ContaApi temChave={temChave} soAbertos={soAbertos} linkRecarga={linkRecarga} aoMudar={() => setRecarga((r) => r + 1)} />} />}
     </div>
     </MotorCtx.Provider>

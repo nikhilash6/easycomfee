@@ -1905,3 +1905,5 @@ button.mini { height: 30px; }
 .mq-componentes li[data-ok='true'] .mq-marca, .mq-componentes li[data-ok='true'] .mq-estado { color: #4ade80; }
 .mq-estado { font-size: 12px; color: #9a9a9a; text-align: right; }
 @media (max-width: 560px) { .mq-campos { grid-template-columns: 1fr; } .mq-acao { align-items: flex-start; } }
+.mq-filtros { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
+.mq-filtros .mq-filtro { margin: 0; }

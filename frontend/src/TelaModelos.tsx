@@ -313,7 +313,6 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
         {/* O conteudo da aba escolhida: as abas acima apontam para ele (aria-controls). */}
         <div role={conta ? 'tabpanel' : undefined} id="mq-painel" aria-labelledby={conta ? `mq-aba-${aba}` : undefined}>
         {aba === 'api' ? conta : <>
-        {topoLocais && <section className="mq-cartao">{topoLocais}</section>}
         <InicioComWindows />
 
         <Maquina aoSalvar={(p) => { setPerfil(p); recarregar() }} />
@@ -345,6 +344,9 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
           </section>
         )}
 
+        {/* As duas opcoes de filtro juntas, sem caixa, uma em cima da outra. */}
+        <div className="mq-filtros">
+        {topoLocais}
         {perfil && !perfil.so_nuvem && pacotes && (
           <label className="mq-filtro">
             <input type="checkbox" checked={soQueRodam} onChange={(e) => setSoQueRodam(e.target.checked)} />
@@ -352,6 +354,7 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
             {soQueRodam && <small> ({pacotes.filter((p) => p.nesta_maquina.selo === 'nao_roda' && p.pronto !== true).length} hidden)</small>}
           </label>
         )}
+        </div>
 
         {perfil && pacotes?.filter((p) => !soQueRodam || p.nesta_maquina.selo !== 'nao_roda' || p.pronto === true).map((p) => {
           const baixando = !!prog?.ativo && prog.pacote === p.id
