@@ -2242,3 +2242,10 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .hf-vfx-palco { width: 100%; max-width: 100%; max-height: none; box-sizing: border-box; }
 .hf-vfx-centro { min-width: 0; overflow: hidden; }
 @media (max-width: 1400px) { .hf-vfx-grade { grid-template-columns: 230px minmax(0, 1fr) 260px; gap: 18px; } }
+/* Todas as galerias de recentes (Image, Edit, Video) em mosaico (masonry): cada arquivo na sua proporcao. */
+.hf-aba .hf-img-faixa, .hf-aba.hf-img:not(.hf-vid):not(.hf-edt) .hf-img-faixa, .hf-vid .hf-img-faixa {
+  display: block; columns: 6 170px; column-gap: 10px; overflow: visible; }
+.hf-aba .hf-img-faixa > .hf-img-faixa-item, .hf-aba.hf-img:not(.hf-vid):not(.hf-edt) .hf-img-faixa-item, .hf-vid .hf-img-faixa-item {
+  display: block; width: 100%; height: auto; aspect-ratio: auto; margin: 0 0 10px; break-inside: avoid; position: relative; }
+.hf-aba .hf-img-faixa-item > img, .hf-aba .hf-img-faixa-item > video { width: 100%; height: auto; display: block; object-fit: contain; }
+.hf-aba .hf-img-faixa > .hf-vazio { column-span: all; }
