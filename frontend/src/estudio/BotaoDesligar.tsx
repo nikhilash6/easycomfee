@@ -18,7 +18,7 @@ export default function BotaoDesligar() {
   // No body: dentro do topo o aviso ficava atras da barra lateral.
   if (desligado) return createPortal(
     <div className="hf-desligado" role="status">
-      <div><h1>EasyComfee is off</h1><p>You can close this tab.</p></div>
+      <div><h1>EasyComfee <span className="hf-desligado-is">is</span> <span className="hf-desligado-off">off</span></h1><p>You can close this tab.</p></div>
     </div>, document.body)
   return (
     <button type="button" className="hf-botao-desligar" onClick={desligar} title="Turn off EasyComfee" aria-label="Turn off EasyComfee">
