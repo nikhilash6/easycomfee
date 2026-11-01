@@ -37,6 +37,7 @@ import enquadrar
 import ideogram
 import luz
 import miniaturas
+import seguro
 import previa
 import presets
 import prompting
@@ -620,8 +621,10 @@ async def anunciar(tarefa: Tarefa):
 
 def freio_pele(pedido: PedidoGeracao) -> str:
     """Negativo que segura o artefato. Ver presets.TIPOS_IMAGEM."""
-    return presets.negativo_do_tipo(pedido.tipo_imagem, pedido.nivel_pele,
-                                    pedido.negativo)
+    negativo = pedido.negativo
+    if comfy.modo_seguro():
+        negativo = f"{negativo}, {seguro.NEGATIVO}" if negativo.strip() else seguro.NEGATIVO
+    return presets.negativo_do_tipo(pedido.tipo_imagem, pedido.nivel_pele, negativo)
 
 
 async def escolher_modelo_personagem(prioridade: str = "rapido") -> tuple[str, int, float]:
@@ -2628,7 +2631,8 @@ async def aplicar_atualizacao():
 @app.get("/api/motor")
 async def motor_atual():
     return {"modo": comfy.MODO["motor"], "chave_nuvem": chaves.chave() is not None,
-            "link_recarga": config.LINK_RECARGA, "so_abertos": comfy.so_abertos()}
+            "link_recarga": config.LINK_RECARGA, "so_abertos": comfy.so_abertos(),
+            "modo_seguro": comfy.modo_seguro()}
 
 
 @app.get("/api/profundidade/exr/{tarefa_id}")
@@ -2693,6 +2697,13 @@ class PedidoAbertos(Pedido):
 async def trocar_abertos(pedido: PedidoAbertos):
     """Liga/desliga o filtro de pesos abertos (modelos de API pela Comfy)."""
     comfy.escolher_abertos(pedido.valor)
+    return await motor_atual()
+
+
+@app.post("/api/seguro")
+async def trocar_seguro(pedido: PedidoAbertos):
+    """Liga/desliga o Safe mode (filtro de prompt + imagens NSFW borradas)."""
+    comfy.escolher_seguro(pedido.valor)
     return await motor_atual()
 
 
@@ -3412,6 +3423,10 @@ IMG2IMG = {"sd15", "sdxl", "sd35m", "sd35l"}
 
 @app.post("/api/gerar")
 async def gerar(pedido: PedidoGeracao):
+    if comfy.modo_seguro():
+        termo = seguro.checar_prompt(pedido.prompt)
+        if termo:
+            raise HTTPException(400, f'Safe mode is on: "{termo}" is not allowed. You can turn Safe mode off in Config Models.')
     if pedido.modelo not in _modelos_conhecidos():
         raise HTTPException(400, f"Unknown model: {pedido.modelo}")
     if pedido.modelo in presets.SIMPLE and pedido.referencias:
@@ -4018,6 +4033,22 @@ def _falha_ao_ler(erro: Exception) -> HTTPException:
     return HTTPException(502, "ComfyUI could not deliver the file.")
 
 
+async def _versao_segura(dados: bytes, nome: str, subpasta: str, mime: str) -> tuple[bytes, str]:
+    """Safe mode: o arquivo que o classificador marcou sai borrado (o do disco fica igual)."""
+    chave = f"{subpasta}/{nome}"
+    if not await asyncio.to_thread(seguro.oculto, dados, nome, chave):
+        return dados, mime
+    if mime.startswith("video/"):
+        cache = seguro.PASTA / "borrados" / (chave.replace("/", "__") + ".mp4")
+        if not cache.exists():
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_bytes(await asyncio.to_thread(seguro.borrar_video, dados, nome))
+        return cache.read_bytes(), "video/mp4"
+    if mime.startswith("image/"):
+        return await asyncio.to_thread(seguro.borrar_imagem, dados), "image/png"
+    return dados, mime
+
+
 @app.get("/api/imagem")
 async def imagem(nome: str, subpasta: str = "", tipo: str = "output"):
     if subpasta == "finalizacoes_musica":
@@ -4030,9 +4061,12 @@ async def imagem(nome: str, subpasta: str = "", tipo: str = "output"):
         dados = await comfy.imagem(nome, subpasta, tipo)
     except Exception as e:
         raise _falha_ao_ler(e)
+    mime = _tipo_mime(nome)
+    if tipo == "output" and comfy.modo_seguro():
+        dados, mime = await _versao_segura(dados, nome, subpasta, mime)
     # O tipo tem que casar com o arquivo. Servindo um mp4 como image/png o
     # navegador se recusa a toca-lo, e o <video> fica preto sem dizer por que.
-    return Response(dados, media_type=_tipo_mime(nome),
+    return Response(dados, media_type=mime,
                     headers={"Accept-Ranges": "bytes",
                              "Cache-Control": "public, max-age=604800"})
 
@@ -4041,6 +4075,10 @@ async def imagem(nome: str, subpasta: str = "", tipo: str = "output"):
 async def miniatura(nome: str, subpasta: str = "", tipo: str = "output"):
     try:
         dados = await miniaturas.obter(nome, subpasta, tipo)
+        if tipo == "output" and comfy.modo_seguro():
+            original = await comfy.imagem(nome, subpasta, tipo)
+            if await asyncio.to_thread(seguro.oculto, original, nome, f"{subpasta}/{nome}"):
+                dados = await asyncio.to_thread(seguro.borrar_imagem, dados)
     except Exception as e:
         raise _falha_ao_ler(e)
     # O arquivo de saida nunca muda de conteudo, entao pode ficar no cache.

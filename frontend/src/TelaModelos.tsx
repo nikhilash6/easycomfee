@@ -346,6 +346,7 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
         )}
 
         <Atualizacoes />
+        <ModoSeguro />
 
         {/* As duas opcoes de filtro juntas, sem caixa, uma em cima da outra. */}
         <div className="mq-filtros">
@@ -473,6 +474,31 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
 
 /** "Check for updates": pergunta ao GitHub agora (sem esperar os 30 min do cache) e, se houver
  *  versao nova, oferece atualizar ali mesmo; o botao do topo tambem aparece. */
+/** Safe mode: ligado de fabrica. Desligar pede confirmacao e passa a responsabilidade a quem usa. */
+function ModoSeguro() {
+  const [ligado, setLigado] = useState<boolean | null>(null)
+  useEffect(() => { fetch('/api/motor').then((r) => r.json()).then((m) => setLigado(m.modo_seguro !== false)).catch(() => {}) }, [])
+  const trocar = async (valor: boolean) => {
+    if (!valor && !window.confirm('Turn Safe mode off? Open-weight models have no content filter of their own. With Safe mode off, prompts are not checked and results are shown as generated. You are responsible for what you create and share.')) return
+    const m = await fetch('/api/seguro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor }) }).then((r) => r.json())
+    setLigado(m.modo_seguro !== false)
+    try { localStorage.setItem('modo_seguro', m.modo_seguro === false ? '0' : '1') } catch { /* sem armazenamento */ }
+    location.reload()
+  }
+  return (
+    <section className="mq-cartao mq-atualizar">
+      <div>
+        <span className="mq-rotulo">Safe mode</span>
+        <p className="mq-sub">{ligado === false
+          ? 'Off. Prompts are not checked and results are shown as generated. You are responsible for what you create.'
+          : 'On. Explicit prompts are blocked and any result detected as NSFW is shown blurred (the file on disk is kept).'}</p>
+      </div>
+      {ligado !== null && <button className={ligado ? 'mq-botao-sec' : 'mq-botao mq-botao-forte'} onClick={() => trocar(!ligado)}>
+        {ligado ? 'Turn off' : 'Turn on'}</button>}
+    </section>
+  )
+}
+
 function Atualizacoes() {
   const [fase, setFase] = useState<'' | 'olhando' | 'feito'>('')
   const [dados, setDados] = useState<{ disponivel: boolean; novos: number; versao: string; motivo: string; sem_internet?: boolean } | null>(null)

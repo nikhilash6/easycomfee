@@ -2573,3 +2573,38 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .hf-vis-zoombar button:hover { background: rgba(242,255,61,.12); color: #F2FF3D; }
 @media (max-width: 900px) { .hf-vis-zoom { inset: 12px 48px; } }
 .hf-vis-seta, .hf-vis-conta { z-index: 3; }
+
+/* Faixa de recentes com os atalhos da galeria (menu, apagar, baixar, Use, Animate), em tamanho menor */
+.hf-faixa-midia { padding: 0; overflow: visible; }
+.hf-faixa-midia .hf-midia-caixa { width: 100%; height: 100%; }
+.hf-faixa-midia .hf-midia { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; cursor: pointer; }
+.hf-faixa-midia .hf-acoes-topo { gap: 2px; top: 4px; right: 4px; }
+.hf-faixa-midia .hf-acoes-topo .hf-icone { width: 22px; height: 22px; }
+.hf-faixa-midia .hf-acoes-base { left: 4px; right: 4px; bottom: 4px; gap: 3px; }
+.hf-faixa-midia .hf-pilula { padding: 2px 7px; font-size: 10.5px; }
+.hf-vis-zoom img { position: absolute; inset: 0; }
+.hf-dica-aviso { display: block; margin-top: 6px; color: #F2FF3D; opacity: .85; }
+/* Cinema: Advanced alinhado a esquerda, abaixo dos controles, com divisoria e campos na altura dos seletores */
+.hf-cin-rodape .hf-ajustes { align-self: stretch; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hf-linha); gap: 18px; }
+.hf-cin-rodape .hf-ajustes-botao { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--hf-apagado); }
+.hf-cin-rodape .hf-ajustes-botao:hover { color: #F2FF3D; }
+.hf-cin-rodape .hf-ajustes-campos { gap: 18px; }
+.hf-cin-rodape .hf-ajustes-campos label { gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #F2FF3D; }
+.hf-cin-rodape .hf-ajustes-campos input { height: 34px; width: 120px; padding: 0 12px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 13px; text-transform: none; }
+.hf-cin-rodape .hf-ajustes-campos label:not(:first-child) input { width: 84px; }
+.hf-cin-rodape .hf-ajustes-nota { flex-basis: 100%; font-size: 12px; }
+/* Cinema: o rodape tem altura fixa; os campos do Advanced abrem num painel flutuante em vez de empurrar os planos */
+.hf-cin-rodape { position: relative; }
+.hf-cin-rodape .hf-ajustes { position: relative; align-self: flex-start; margin-top: 10px; padding-top: 0; border-top: 0; }
+.hf-cin-rodape .hf-ajustes-campos { position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: max-content; max-width: 520px;
+  padding: 14px 16px; gap: 14px 18px; background: #1E1724; border: 1px solid rgba(242,255,61,.25); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+.hf-cin-rodape .hf-ajustes-limpar { position: absolute; top: calc(100% + 8px); right: 0; z-index: 31; }
+/* Advanced agora fica na linha dos controles, como um seletor */
+.hf-cin-rodape .hf-cinema-rodape .hf-ajustes { align-self: flex-end; margin: 0; flex-wrap: nowrap; }
+.hf-cin-rodape .hf-cinema-rodape .hf-ajustes-botao { height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--hf-linha); background: rgba(255,255,255,.03); color: var(--hf-texto); }
+.hf-cin-rodape .hf-cinema-rodape .hf-ajustes[data-aberto="true"] .hf-ajustes-botao { border-color: rgba(242,255,61,.5); color: #F2FF3D; }
+.hf-cin-rodape .hf-cinema-rodape .hf-ajustes-campos { left: auto; right: 0; }
+/* Enquadramento num popup centralizado, cartoes pequenos */
+.hf-enq-popup.hf-painel-op { position: static; display: grid; grid-template-columns: repeat(4, 150px); gap: 10px; padding: 0; margin: 0; border: 0; background: none; box-shadow: none; width: auto; max-height: none; }
+.hf-enq-popup .hf-cartao-op img, .hf-enq-popup img { width: 100%; height: 84px; object-fit: cover; }
+@media (max-width: 760px) { .hf-enq-popup.hf-painel-op { grid-template-columns: repeat(2, 140px); } }

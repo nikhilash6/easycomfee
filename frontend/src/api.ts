@@ -608,8 +608,13 @@ export const MODOS_QUE_EDITAM =
   ['trocar', 'instrucao', 'estilo', 'controle', 'ampliar', 'angulo', 'reluz',
    'personagem']
 
+/** Safe mode entra no endereco: ligar/desligar troca a URL, e o navegador nao reusa a versao do cache. */
+export function marcaSeguro() {
+  try { return localStorage.getItem('modo_seguro') === '0' ? '0' : '1' } catch { return '1' }
+}
+
 export function urlImagem(im: { nome: string; subpasta?: string }) {
-  const p = new URLSearchParams({ nome: im.nome, subpasta: im.subpasta ?? '' })
+  const p = new URLSearchParams({ nome: im.nome, subpasta: im.subpasta ?? '', s: marcaSeguro() })
   return `/api/imagem?${p}`
 }
 
@@ -621,7 +626,7 @@ export function urlEntrada(nome: string) {
 
 /** Versão reduzida e em cache, para a galeria não baixar megabytes por item. */
 export function urlMiniatura(im: { nome: string; subpasta?: string }) {
-  const p = new URLSearchParams({ nome: im.nome, subpasta: im.subpasta ?? '' })
+  const p = new URLSearchParams({ nome: im.nome, subpasta: im.subpasta ?? '', s: marcaSeguro() })
   return `/api/miniatura?${p}`
 }
 

@@ -397,10 +397,12 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
                       <span>{rot(ENQUADRAMENTOS, p.enquadramento)}</span><i>▾</i>
                     </button>
                 {enqAberto === p.id && (
-                  <div className="hf-painel-op hf-painel-enq">
-                    {ENQUADRAMENTOS.map((o) => <Cartao key={o.id} grupo="enquadramento" o={o} ativo={p.enquadramento === o.id}
-                      aoEscolher={() => { mudarPlano(p.id, { enquadramento: o.id }); setEnqAberto(null) }} />)}
-                  </div>
+                  <Popup titulo={`Framing · Shot ${i + 1}`} aoFechar={() => setEnqAberto(null)}>
+                    <div className="hf-painel-op hf-painel-enq hf-enq-popup">
+                      {ENQUADRAMENTOS.map((o) => <Cartao key={o.id} grupo="enquadramento" o={o} ativo={p.enquadramento === o.id}
+                        aoEscolher={() => { mudarPlano(p.id, { enquadramento: o.id }); setEnqAberto(null) }} />)}
+                    </div>
+                  </Popup>
                 )}
                 {video && aceitaInicio && (p.inicio || stillDe(p)) && (
                   <div className="hf-inicio-plano">
@@ -515,11 +517,11 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
             <Controle icone="▦" rotulo="Takes per shot" valor={String(lote)} aoMudar={(v) => setLote(Number(v))}
               opcoes={[1, 2, 4].map((n) => ({ id: String(n), rotulo: `${n}` }))} />
           </>}
+          {local && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos={!video}
+            nota="Applies to every shot in the list, so light and cast stay the same." />}
           <BotaoGerar rotulo={trabalhando || `✦ Generate shots (${planos.length})`}
             est={custoTotal} desligado={!!naoInstalado || !cena.trim() || !!trabalhando} aoClicar={gerarTodos} />
         </div>
-        {local && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos={!video}
-          nota="Applies to every shot in the list, so light and cast stay the same." />}
         {naoInstalado && <AvisoInstalar rotulo={naoInstalado} />}
         {erro && <p className="hf-erro">{erro}</p>}
       </div>

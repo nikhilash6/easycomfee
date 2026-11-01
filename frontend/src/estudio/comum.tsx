@@ -224,10 +224,12 @@ export function useFalaPendente(receber: (f: File) => void) {
 }
 
 /** A generated file. Clicking it opens the full-size viewer; on hover, a bar of actions. */
-export function Midia({ nome, subpasta }: { nome: string; subpasta: string }) {
+export function Midia({ nome, subpasta, aoClicar }: { nome: string; subpasta: string; aoClicar?: () => void }) {
   const url = urlImagem({ nome, subpasta })
   const arq = { nome, subpasta }
   const abrir = () => abrirVisualizador(arq)
+  // Nas faixas de recentes o clique na miniatura escolhe a imagem grande; o botao de abrir continua no topo.
+  const clicar = aoClicar ?? abrir
   const imagem = !eAudio(nome) && !eVideo(nome)
   const video = eVideo(nome)
   const [aviso, setAviso] = useState('')
@@ -304,7 +306,7 @@ export function Midia({ nome, subpasta }: { nome: string; subpasta: string }) {
               onMouseLeave={(e) => { e.currentTarget.pause() }} />
             <span className="hf-play" aria-hidden>▶</span>
           </>
-          : <img src={url} alt="" className="hf-midia" loading="lazy" onClick={abrir} />}
+          : <img src={url} alt="" className="hf-midia" loading="lazy" onClick={clicar} onDoubleClick={abrir} />}
 
       <div className="hf-acoes-topo">
         <button type="button" className="hf-icone" data-ativo={menu} onClick={() => setMenu((m) => !m)} title="More" aria-label="More actions" aria-expanded={menu}><Icone d="mais" /></button>

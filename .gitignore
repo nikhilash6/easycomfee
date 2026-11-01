@@ -58,3 +58,6 @@ dados/grafos/
 video-lancamento/node_modules/
 video-lancamento/public/
 video-lancamento/saida/
+
+# Safe mode: classificador baixado na primeira vez e o cache das notas
+backend/modelos_seguro/

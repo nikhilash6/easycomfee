@@ -52,7 +52,9 @@ _pref = _ler_preferencias()
 # "abertos": so modelos de pesos abertos. O padrao vem do config.json; a
 # chave na barra do topo grava a escolha aqui.
 MODO = {"motor": _pref.get("motor", "local"),
-        "abertos": bool(_pref.get("so_abertos", config.SO_MODELOS_ABERTOS))}
+        "abertos": bool(_pref.get("so_abertos", config.SO_MODELOS_ABERTOS)),
+        # Safe mode ligado de fabrica; desligar e escolha de quem usa (ver seguro.py).
+        "seguro": bool(_pref.get("modo_seguro", True))}
 
 
 def so_abertos() -> bool:
@@ -62,6 +64,15 @@ def so_abertos() -> bool:
 def escolher_abertos(valor: bool) -> None:
     MODO["abertos"] = bool(valor)
     _gravar_preferencias(so_abertos=bool(valor))
+
+
+def modo_seguro() -> bool:
+    return MODO["seguro"]
+
+
+def escolher_seguro(valor: bool) -> None:
+    MODO["seguro"] = bool(valor)
+    _gravar_preferencias(modo_seguro=bool(valor))
 
 
 def na_nuvem() -> bool:

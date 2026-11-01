@@ -74,6 +74,7 @@ export const ENQUADRAMENTOS: Opcao[] = [
   { id: 'ombro', rotulo: 'Over the shoulder', texto: 'Over-the-shoulder shot, a blurred shoulder in the foreground' },
   { id: 'baixo', rotulo: 'Low angle', texto: 'Low-angle shot from near the ground, looking steeply up at the person, who towers against the sky' },
   { id: 'alto', rotulo: 'High angle', texto: 'High-angle shot looking down on the subject from above' },
+  { id: 'selfie', rotulo: 'Selfie', texto: 'Selfie shot: the person holds the phone at arm’s length and looks into the lens, one arm reaching toward the camera, slight wide-angle distortion, the place behind them' },
 ]
 
 export const LUZES: Opcao[] = [

@@ -60,6 +60,8 @@ def teste_motor_fora_do_ar_nao_inventa_estado(monkeypatch):
 
 # Pedidos pelo codigo que NAO entram no catalogo, cada um com o motivo.
 FORA_DO_CATALOGO = {
+    "nsfw_image_detection_int8.onnx": "classificador do Safe mode; o app baixa sozinho para backend/modelos_seguro",
+    "https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_quantized.onnx": "idem (URL)",
     "Krea/kroma-v0.3.1-nicegirls08_fp8_scaled.safetensors": "fusao pessoal do autor; o modo Kroma Foto fica fora da versao publica",
     "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors": "copia antiga sem subpasta; o grafo usa LTX/2.5/",
     "Flux2/flux-2-klein-9b-fp8.safetensors": "variante destilada citada so em comentario de preset",

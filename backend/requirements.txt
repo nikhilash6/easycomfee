@@ -13,3 +13,4 @@ python-multipart==0.0.32
 soundfile==0.13.1
 truststore
 jsonata-python==0.7.1
+onnxruntime==1.31.1

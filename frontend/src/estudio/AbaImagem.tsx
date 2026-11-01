@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { abrirVisualizador, recriar, useRecriar, useReusarPrompt, type Receita } from './Visualizador'
-import { api, urlEntrada, urlImagem, type Elemento, type Modelo, type ModeloNuvem, type Referencia } from '../api'
+import { api, urlEntrada, type Elemento, type Modelo, type ModeloNuvem, type Referencia } from '../api'
 import LayoutIdeogram from './LayoutIdeogram'
 import { AvisoInstalar, GruposAbertos, useEscolha, useFaltaInstalar, useInstalado, useValor, valorAberto } from './motor'
 import { LOOKS, aplicarLook } from './looks'
@@ -254,7 +254,6 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
             {emCurso[0] && !palco ? <CartaoTarefa t={emCurso[0]} />
               : palco ? <Midia key={palco.subpasta + palco.nome} nome={palco.nome} subpasta={palco.subpasta} />
               : <div className="hf-img-vazio"><b>Your image appears here</b><span>Pick a look or write a prompt, then press Generate.</span></div>}
-            {emCurso[0] && palco && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
           </div>
           {/* Navegacao entre as imagens recentes, logo abaixo da imagem grande. */}
           {(() => {
@@ -302,6 +301,10 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
             <input type="range" min={0.2} max={1} step={0.05} value={forcaImagem} aria-label="How much the image changes"
               onChange={(e) => setForcaImagem(Number(e.target.value))} />
             <small className="hf-dica">Low keeps the photo; high keeps only its layout.</small>
+            {lookAtual && (lookAtual.comImagem || lookAtual.foto) && (
+              <small className="hf-dica hf-dica-aviso">This model repaints the photo but can't edit it: {lookAtual.rotulo} may barely change it.
+                Raise Strength to about 80%, or use an edit model (Flux 3 Klein, Qwen) for a real transformation.</small>
+            )}
           </div>
         )}
         {lookAtual?.opcoes && (
@@ -353,10 +356,9 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
         <div className="hf-img-faixa">
           {emCurso.map((t) => <div key={t.id} className="hf-img-faixa-item hf-img-faixa-curso"><CartaoTarefa t={t} /></div>)}
           {recentes.map((a) => (
-            <button key={a.subpasta + a.nome} type="button" className="hf-img-faixa-item" data-ativo={palco?.nome === a.nome}
-              onClick={() => setSelecionada(a)} title="Show it in the big view">
-              <img src={urlImagem(a)} alt="" loading="lazy" />
-            </button>
+            <div key={a.subpasta + a.nome} className="hf-img-faixa-item hf-faixa-midia" data-ativo={palco?.nome === a.nome} title="Show it in the big view">
+              <Midia nome={a.nome} subpasta={a.subpasta} aoClicar={() => setSelecionada(a)} />
+            </div>
           ))}
           {!recentes.length && !emCurso.length && <p className="hf-vazio">Your images will appear here.</p>}
         </div>
