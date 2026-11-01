@@ -2442,6 +2442,19 @@ def _geracao_em_andamento() -> bool:
         for t in TAREFAS.values())
 
 
+@app.get("/api/limites")
+async def limites():
+    """O que esta maquina aguenta. A Blender Bridge (MCP) le daqui o teto do
+    3D render -> Video, em vez de supor uma placa de 16 GB."""
+    import maquina
+    hw = await maquina.detectar()
+    efeitos = presets.VIDEO_TRANSFORMAR["efeitos"]
+    return {"hardware": {"gpu": hw.get("gpu"), "vram_gb": hw.get("vram_gb"), "ram_gb": hw.get("ram_gb")},
+            "maquete": {"quadros": efeitos["maquete"]["max_quadros"],
+                        "lado": presets.limite_maquete(hw.get("vram_gb"))},
+            "profundidade": {"quadros": efeitos["profundidade"]["max_quadros"]}}
+
+
 @app.post("/api/desligar")
 async def desligar():
     """O botao Power: fecha os motores que o app sabe religar e depois o proprio app.

@@ -61,3 +61,9 @@ video-lancamento/saida/
 
 # Safe mode: classificador baixado na primeira vez e o cache das notas
 backend/modelos_seguro/
+
+# Blender Bridge (MCP): ambiente, saidas e arquivos gerados pelo install.bat dela.
+blender-bridge/server/.venv/
+blender-bridge/output/
+blender-bridge/blender_bridge_addon.zip
+blender-bridge/mcp-config.json

@@ -1,0 +1,13 @@
+The blocking method (GUIDE.md, scripts/ and references/) is an adaptation of
+seedance-blocking by Thomas Lundström / Grove Media, under the MIT License
+(full text in LICENSE).
+
+Kept almost unchanged: scripts/solve_shot.py, scripts/previz_core.py,
+references/CAMERA_RULES.md, references/SHOT_GRAMMAR.md and
+references/SEEDANCE_PROMPT.md.
+
+Changes in this version: runs through the local Blender Bridge (any MCP client)
+instead of the Higgsfield Bridge connector; viewport_ready() and backup() adapted
+to run on the Bridge timer and on Windows; local delivery through EasyComfee's
+3D render -> Video (LTX 2.5); GUIDE.md rewritten and served by the MCP server
+(blocking_guide), with the solver and the core loader exposed as MCP tools.
