@@ -51,11 +51,17 @@ const REFERENCIAS: Record<string, { modo: string; max: number; uso: string; base
   klein: { modo: 'trocar', max: 4, base: true, uso: 'Image 1 is the scene; the others replace who or what is in it.' },
   flux3: { modo: 'flux3ref', max: 10, base: true, uso: 'Image 1 is the base you edit; add people, outfits or places as image 2, 3… (up to 10).' },
   mage: { modo: 'instrucao', max: 3, base: true, uso: 'Quick edit of image 1 from an instruction, keeping the rest intact.' },
+  sd15: { modo: 'sd15', max: 1, base: true, uso: 'Starting image: the new picture keeps its layout and colors. Strength says how much it changes.' },
+  sdxl: { modo: 'sdxl', max: 1, base: true, uso: 'Starting image: the new picture keeps its layout and colors. Strength says how much it changes.' },
+  sd35m: { modo: 'sd35m', max: 1, base: true, uso: 'Starting image: the new picture keeps its layout and colors. Strength says how much it changes.' },
+  sd35l: { modo: 'sd35l', max: 1, base: true, uso: 'Starting image: the new picture keeps its layout and colors. Strength says how much it changes.' },
 }
 
 // On Comfy Cloud the Krea character, Qwen 2.1 edit and Flux 3 reference modes
 // are not hosted; images go through Qwen Image Edit 2511 there (open, 3 images).
 const NUVEM_SEM_REF = new Set(['krea', 'kroma', 'qwen21', 'flux3'])
+// Modelos de checkpoint unico: a imagem vira o ponto de partida (img2img), com uma forca.
+const IMG2IMG = new Set(['sd15', 'sdxl', 'sd35m', 'sd35l'])
 const REF_NUVEM = { modo: 'qwen', max: 3, base: true, uso: 'On Comfy Cloud, images go through Qwen Image Edit. Image 1 is the base; add people or objects as image 2, 3.' }
 
 export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuvem }: { modelos: Modelo[]; apiModelos: ModeloNuvem[]; apiOcultos?: ModeloNuvem[]; naNuvem: boolean }) {
@@ -144,11 +150,13 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
   // (x1,4) e "4K" o modo nativo (~8,3 MP, uns 7,5 min em 16 GB), so sem imagens de referencia.
   const flux3Local = !apiAtual && !naNuvem && modelo === 'flux3'
   const [tamanho, setTamanho] = useState('padrao')
+  const [forcaImagem, setForcaImagem] = useState(0.6)
   const tamanhoOk = tamanho === '4k' && comRefs ? 'padrao' : tamanho
   const pedido = {
     modelo: comRefs && usoRefs ? usoRefs.modo : modelo, prompt: prompt || 'x', proporcao,
     ...(flux3Local ? (tamanhoOk === 'alta' ? { escala: 1.4 } : tamanhoOk === '4k' ? { nativo_4k: true } : {}) : {}),
     lote: comRefs && !apiAtual ? 1 : lote, referencias: refsOk.map((r) => r.nome),
+    ...(comRefs && IMG2IMG.has(modelo) ? { forca_imagem: forcaImagem } : {}),
     ...(apiAtual ? {} : camposAjustes(ajustes, true)),
     ...(apiAtual ? { resolucao_nuvem: nivelOk } : {}),
     ...(usarLayout ? { caption: {
@@ -287,6 +295,13 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
                 valor={null} aoMudar={(n) => n && setRefs((a) => [...a.slice(0, maxRefs), n])} />
             )}
           </div></div>
+        )}
+        {comRefs && IMG2IMG.has(modelo) && (
+          <div className="hf-campo"><span>Strength · {Math.round(forcaImagem * 100)}%</span>
+            <input type="range" min={0.2} max={1} step={0.05} value={forcaImagem} aria-label="How much the image changes"
+              onChange={(e) => setForcaImagem(Number(e.target.value))} />
+            <small className="hf-dica">Low keeps the photo; high keeps only its layout.</small>
+          </div>
         )}
         <div className="hf-img-controles">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">

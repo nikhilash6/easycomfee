@@ -21,7 +21,7 @@ def _texto(grafo, nid, clip_id, texto):
 
 def gerar_simples(modelo, prompt, negativo, seed, largura, altura,
                   steps=None, cfg=None, prefixo="saida", lote=1,
-                  referencias=None, forca_referencia=1.0, posicoes=None):
+                  referencias=None, forca_referencia=1.0, posicoes=None, forca_imagem=0.6):
     """Pipeline padrao: Krea 2, Flux 2 Klein, Z-Image ou Mage."""
     p = SIMPLE[modelo]
     if "escala" in p:
@@ -33,6 +33,17 @@ def gerar_simples(modelo, prompt, negativo, seed, largura, altura,
                       "inputs": {"ckpt_name": win(p["checkpoint"])}},
              "latente": {"class_type": p["latent"],
                          "inputs": {"width": largura, "height": altura, "batch_size": lote}}}
+        denoise = 1.0
+        if referencias:
+            # Imagem como ponto de partida (img2img): a foto, no tamanho pedido, vira o latente
+            # inicial; a forca diz quanto ela muda (0.2 quase igual, 1.0 so a composicao).
+            g["ref"] = {"class_type": "LoadImage", "inputs": {"image": referencias[0]}}
+            g["ref_tam"] = {"class_type": "ImageScale", "inputs": {"image": ["ref", 0], "upscale_method": "lanczos",
+                                                               "width": largura, "height": altura, "crop": "center"}}
+            g["latente"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["ref_tam", 0], "vae": ["unet", 2]}}
+            if lote > 1:
+                g["latente_lote"] = {"class_type": "RepeatLatentBatch", "inputs": {"samples": ["latente", 0], "amount": lote}}
+            denoise = max(0.15, min(1.0, forca_imagem))
         _texto(g, "pos", ["unet", 1], prompt)
         if p["zero_negative"] and not negativo:
             g["neg"] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["pos", 0]}}
@@ -40,17 +51,15 @@ def gerar_simples(modelo, prompt, negativo, seed, largura, altura,
             _texto(g, "neg", ["unet", 1], negativo or "")
         g["amostra"] = {"class_type": "KSampler",
                         "inputs": {"model": ["unet", 0], "positive": ["pos", 0],
-                                   "negative": ["neg", 0], "latent_image": ["latente", 0],
+                                   "negative": ["neg", 0], "latent_image": ["latente_lote" if "latente_lote" in g else "latente", 0],
                                    "seed": seed, "steps": steps or p["steps"],
                                    "cfg": cfg if cfg is not None else p["cfg"],
                                    "sampler_name": p["sampler"],
-                                   "scheduler": p["scheduler"], "denoise": 1.0}}
+                                   "scheduler": p["scheduler"], "denoise": denoise}}
         g["decodifica"] = {"class_type": "VAEDecode",
                            "inputs": {"samples": ["amostra", 0], "vae": ["unet", 2]}}
         g["salva"] = {"class_type": "SaveImage",
                       "inputs": {"images": ["decodifica", 0], "filename_prefix": prefixo}}
-        if referencias:
-            raise ValueError("Este gerador não aceita referência de personagem.")
         return g
     if p.get("familia") == "flux2":
         return _gerar_flux2(p, prompt, seed, largura, altura, steps, prefixo, lote)

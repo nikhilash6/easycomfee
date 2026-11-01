@@ -412,6 +412,8 @@ class PedidoGeracao(Pedido):
     # A primeira e a imagem base; as demais sao referencias.
     referencias: list[str] = Field(default_factory=list)
     forca_referencia: float = Field(1.0, ge=0.5, le=4.0)
+    # SD 1.5, SDXL e SD 3.5 com uma imagem: quanto a imagem muda (img2img).
+    forca_imagem: float = Field(0.6, ge=0.15, le=1.0)
     # Cena com 2-3 personagens (Krea/Kroma): onde cada referencia fica, na
     # ordem das referencias; "" deixa o modelo decidir.
     posicoes_referencia: list[str] = Field(default_factory=list, max_length=3)
@@ -1629,7 +1631,7 @@ async def montar(tarefa: Tarefa):
                                    altura, p.steps, p.cfg, prefixo, p.lote,
                                    referencias=p.referencias,
                                    forca_referencia=p.forca_referencia,
-                                   posicoes=p.posicoes_referencia)
+                                   posicoes=p.posicoes_referencia, forca_imagem=p.forca_imagem)
 
 
 # ---------------------------------------------------------------- operario da fila
@@ -3404,13 +3406,20 @@ async def genjutsu_quadro(p: PedidoQuadro):
     return {"nome": nome}
 
 
+# Modelos de checkpoint unico que aceitam uma imagem de partida (img2img).
+IMG2IMG = {"sd15", "sdxl", "sd35m", "sd35l"}
+
+
 @app.post("/api/gerar")
 async def gerar(pedido: PedidoGeracao):
     if pedido.modelo not in _modelos_conhecidos():
         raise HTTPException(400, f"Unknown model: {pedido.modelo}")
     if pedido.modelo in presets.SIMPLE and pedido.referencias:
-        if pedido.modelo not in ("krea", "kroma", "kroma_foto"):
+        img2img = pedido.modelo in IMG2IMG
+        if pedido.modelo not in ("krea", "kroma", "kroma_foto") and not img2img:
             raise HTTPException(400, "Este gerador não aceita referência de personagem.")
+        if img2img and len(pedido.referencias) != 1:
+            raise HTTPException(400, "Envie uma imagem de partida.")
         if not 1 <= len(pedido.referencias) <= 3:
             raise HTTPException(400, "Envie de uma a três referências de personagem.")
         if not all(_caminho_de_entrada(r) for r in pedido.referencias):
