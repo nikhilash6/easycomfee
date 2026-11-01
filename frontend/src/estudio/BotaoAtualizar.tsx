@@ -2,16 +2,21 @@
 // version (backend/atualizacao.py). Pressing it closes the server, a window
 // downloads and builds the new version, and this page reloads by itself when
 // the studio is back.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { textoDoDetalhe } from './comum'
 import { avisarMotor } from './motor'
 
 type Estado = { disponivel: boolean; novos: number }
 
+/** O Config Models pede para conferir agora (forcar) e para atualizar: os dois avisos chegam aqui. */
+export const EVENTO_ESTADO = 'easycomfee:atualizacao-estado'
+export const EVENTO_APLICAR = 'easycomfee:atualizacao-aplicar'
+
 export default function BotaoAtualizar() {
   const [estado, setEstado] = useState<Estado | null>(null)
   const [fase, setFase] = useState<'' | 'atualizando' | 'erro'>('')
   const [erro, setErro] = useState('')
+  const atualizarRef = useRef<() => void>(() => {})
 
   // Pergunta ao abrir, de novo a cada 15 min e quando a pessoa volta para a aba:
   // antes so ao abrir, e uma versao publicada com a pagina aberta so aparecia com F5.
@@ -29,7 +34,12 @@ export default function BotaoAtualizar() {
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar) }
   }, [])
 
-  if (!estado?.disponivel && !fase) return null
+  useEffect(() => {
+    const novo = (e: Event) => setEstado((e as CustomEvent<Estado>).detail)
+    const aplicar = () => { atualizarRef.current() }
+    window.addEventListener(EVENTO_ESTADO, novo); window.addEventListener(EVENTO_APLICAR, aplicar)
+    return () => { window.removeEventListener(EVENTO_ESTADO, novo); window.removeEventListener(EVENTO_APLICAR, aplicar) }
+  }, [])
 
   const atualizar = async () => {
     if (!confirm('Update EasyComfee now?\n\nThe studio closes for a few minutes while a window downloads the new version. '
@@ -51,6 +61,9 @@ export default function BotaoAtualizar() {
       else if (caiu) { clearInterval(vigia); location.reload() }
     }, 3000)
   }
+
+  atualizarRef.current = atualizar
+  if (!estado?.disponivel && !fase) return null
 
   if (fase === 'atualizando') return <span className="hf-atualizar" data-fase="atualizando">Updating… this page reloads by itself</span>
   return (

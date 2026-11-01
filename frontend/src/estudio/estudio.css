@@ -2422,6 +2422,19 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
   border-color: rgba(244, 240, 232, .10);
   color: #F4F0E8;
 }
+.hf .hf-slot {
+  background: #131319;
+  border-color: rgba(244, 240, 232, .16);
+  color: #AAA6B2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .018);
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.hf .hf-slot:hover {
+  background: #17171E;
+  border-color: rgba(242, 255, 61, .42);
+  color: #F4F0E8;
+}
+.hf .hf-slot[data-cheio='true'] { border-color: rgba(244, 240, 232, .12); }
 .hf-select:focus, .hf textarea:focus, .hf input:focus { border-color: rgba(242, 255, 61, .58); outline: none; }
 .hf-chips button, .hf-botao-sec {
   background: #202029;

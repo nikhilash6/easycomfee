@@ -1,3 +1,4 @@
+import { EVENTO_ESTADO, EVENTO_APLICAR } from './estudio/BotaoAtualizar'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLembrado } from './estudio/comum'
 import {
@@ -344,6 +345,8 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
           </section>
         )}
 
+        <Atualizacoes />
+
         {/* As duas opcoes de filtro juntas, sem caixa, uma em cima da outra. */}
         <div className="mq-filtros">
         {topoLocais}
@@ -467,3 +470,35 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
     </div>
   )
 }
+
+/** "Check for updates": pergunta ao GitHub agora (sem esperar os 30 min do cache) e, se houver
+ *  versao nova, oferece atualizar ali mesmo; o botao do topo tambem aparece. */
+function Atualizacoes() {
+  const [fase, setFase] = useState<'' | 'olhando' | 'feito'>('')
+  const [dados, setDados] = useState<{ disponivel: boolean; novos: number; versao: string; motivo: string; sem_internet?: boolean } | null>(null)
+  const conferir = async () => {
+    setFase('olhando')
+    try {
+      const d = await fetch('/api/atualizacao?forcar=true').then((r) => r.json())
+      setDados(d); window.dispatchEvent(new CustomEvent(EVENTO_ESTADO, { detail: d }))
+    } catch { setDados({ disponivel: false, novos: 0, versao: '', motivo: 'Could not reach the studio.' }) }
+    setFase('feito')
+  }
+  const texto = !dados ? 'See if a newer version of EasyComfee is on GitHub.'
+    : dados.disponivel ? `A new version is available (${dados.novos} change${dados.novos === 1 ? '' : 's'}).`
+    : dados.sem_internet ? 'No internet connection right now. Try again later.'
+    : dados.motivo ? `Updates are not available on this install (${dados.motivo}).`
+    : `You have the latest version${dados.versao ? ` (${dados.versao})` : ''}.`
+  return (
+    <section className="mq-cartao mq-atualizar">
+      <div>
+        <span className="mq-rotulo">Updates</span>
+        <p className="mq-sub">{texto}</p>
+      </div>
+      {dados?.disponivel
+        ? <button className="mq-botao mq-botao-forte" onClick={() => window.dispatchEvent(new Event(EVENTO_APLICAR))}>Update now</button>
+        : <button className="mq-botao" disabled={fase === 'olhando'} onClick={conferir}>{fase === 'olhando' ? 'Checking…' : 'Check for updates'}</button>}
+    </section>
+  )
+}
+

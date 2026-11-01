@@ -1907,3 +1907,6 @@ button.mini { height: 30px; }
 @media (max-width: 560px) { .mq-campos { grid-template-columns: 1fr; } .mq-acao { align-items: flex-start; } }
 .mq-filtros { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
 .mq-filtros .mq-filtro { margin: 0; }
+.mq-atualizar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mq-atualizar .mq-sub { margin: 4px 0 0; }
+.mq-botao-forte { background: var(--neon); color: #16121A; border-color: var(--neon); font-weight: 700; }
