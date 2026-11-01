@@ -25,7 +25,7 @@ server\.venv\Scripts\python.exe server\escrever_config.py || goto falhou
 echo.
 echo Done. Next:
 echo  1. Blender: Edit ^> Preferences ^> Add-ons ^> Install from Disk ^> blender_bridge_addon.zip,
-echo     turn it on, then 3D Viewport ^> N ^> Bridge ^> Start Bridge.
+echo     and turn it on. It starts by itself whenever Blender opens (3D Viewport ^> N ^> Bridge).
 echo  2. Your MCP client: if you did not add it automatically above, paste the "blender-bridge"
 echo     entry from mcp-config.json into it. Restart the client.
 echo  3. Keep EasyComfee open, and ask for a shot.

@@ -347,6 +347,7 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
 
         <Atualizacoes />
         <ModoSeguro />
+        <BlenderBridge />
 
         {/* As duas opcoes de filtro juntas, sem caixa, uma em cima da outra. */}
         <div className="mq-filtros">
@@ -495,6 +496,60 @@ function ModoSeguro() {
       </div>
       {ligado !== null && <button className={ligado ? 'mq-botao-sec' : 'mq-botao mq-botao-forte'} onClick={() => trocar(!ligado)}>
         {ligado ? 'Turn off' : 'Turn on'}</button>}
+    </section>
+  )
+}
+
+type EstadoBridge = {
+  disponivel: boolean; instalada?: boolean; ffmpeg?: boolean; blender?: boolean
+  clientes?: { nome: string; registrado: boolean }[]; instalando?: boolean; erro?: string; etapa?: string
+}
+
+/** Blender Bridge (MCP, opcional): instala com um clique e registra nos apps de IA achados. */
+function BlenderBridge() {
+  const [b, setB] = useState<EstadoBridge | null>(null)
+  const ler = () => fetch('/api/bridge').then((r) => r.json()).then(setB).catch(() => {})
+  useEffect(() => { ler() }, [])
+  useEffect(() => {
+    if (!b?.instalando) return
+    const t = window.setInterval(ler, 1500)
+    return () => window.clearInterval(t)
+  }, [b?.instalando])
+  if (!b?.disponivel) return null
+  const instalar = async (clientes: string[]) => {
+    await fetch('/api/bridge/instalar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientes }) })
+    ler()
+  }
+  const clientes = b.clientes ?? []
+  const faltam = clientes.filter((c) => !c.registrado)
+  return (
+    <section className="mq-cartao mq-bridge">
+      <div className="mq-atualizar">
+        <div>
+          <span className="mq-rotulo">Blender Bridge · optional</span>
+          <p className="mq-sub">Describe a shot to an AI app (LM Studio, Claude, VS Code…): it blocks it out in Blender
+            and 3D render → Video turns it into the final video. Works with any MCP app.</p>
+        </div>
+        {b.instalando ? <span className="mq-sub">{b.etapa || 'Setting up'}…</span>
+          : !b.instalada ? <button className="mq-botao mq-botao-forte" onClick={() => instalar(faltam.map((c) => c.nome))}>Set up</button>
+          : <button className="mq-botao-sec" onClick={() => fetch('/api/bridge/pasta', { method: 'POST' })}>Open folder</button>}
+      </div>
+      <ul className="mq-bridge-estado">
+        <li data-ok={!!b.instalada}>{b.instalada ? 'Installed' : 'Not set up yet'}</li>
+        <li data-ok={!!b.blender}>{b.blender ? 'Blender connected' : 'Blender not connected'}</li>
+        {clientes.map((c) => (
+          <li key={c.nome} data-ok={c.registrado}>
+            {c.registrado ? `Added to ${c.nome}` : `Not in ${c.nome}`}
+            {!c.registrado && b.instalada && !b.instalando &&
+              <button className="mq-bridge-add" onClick={() => instalar([c.nome])}>Add</button>}
+          </li>
+        ))}
+        {b.ffmpeg === false && <li data-ok={false}>ffmpeg missing (winget install ffmpeg)</li>}
+      </ul>
+      {b.erro && <p className="mq-aviso">{b.erro}</p>}
+      {b.instalada && !b.blender && <p className="mq-sub">In Blender: Edit → Preferences → Add-ons → Install from Disk →
+        <b> blender_bridge_addon.zip</b> (Open folder), and turn it on. It connects by itself whenever Blender opens.
+        {clientes.length > 0 && ' Restart your AI app after adding the Bridge to it.'}</p>}
     </section>
   )
 }

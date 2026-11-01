@@ -22,10 +22,10 @@ def _prefs():
 class BridgePreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
-    port: bpy.props.IntProperty(name="Porta", default=9877, min=1024, max=65535)
+    port: bpy.props.IntProperty(name="Port", default=9877, min=1024, max=65535)
     auto_start: bpy.props.BoolProperty(
-        name="Ligar ao abrir o Blender", default=True,
-        description="Inicia o servidor local automaticamente")
+        name="Start when Blender opens", default=True,
+        description="Starts the local server automatically")
 
     def draw(self, context):
         col = self.layout.column()

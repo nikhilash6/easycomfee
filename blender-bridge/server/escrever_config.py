@@ -9,6 +9,7 @@ import json
 import os
 import pathlib
 import shutil
+import sys
 
 PASTA = pathlib.Path(__file__).resolve().parent
 NOME = "blender-bridge"
@@ -48,11 +49,25 @@ def registrar(arquivo: pathlib.Path) -> str:
     return acao
 
 
+def registrado(arquivo: pathlib.Path) -> bool:
+    try:
+        return NOME in json.loads(arquivo.read_text(encoding="utf-8")).get("mcpServers", {})
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def main():
     texto = json.dumps({"mcpServers": {NOME: ENTRADA}}, indent=2)
     (PASTA.parent / "mcp-config.json").write_text(texto, encoding="utf-8")
-    print(texto)
     achados = clientes()
+    # "--registrar LM Studio,Claude Desktop": sem perguntas (o botao do Config Models).
+    if "--registrar" in sys.argv:
+        pedidos = sys.argv[sys.argv.index("--registrar") + 1].split(",")
+        for nome, arquivo in achados:
+            if nome in pedidos:
+                print(f"{nome}: {registrar(arquivo)}")
+        return
+    print(texto)
     if not achados:
         print("\nNo LM Studio or Claude Desktop found: paste the entry above into your MCP client.")
         return

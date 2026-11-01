@@ -2621,3 +2621,15 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .hf-desligado { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #0d0a10; color: #e9e6ee;
   text-align: center; font-size: 15px; }
 .hf-desligado h1 { font-size: 22px; margin: 0 0 8px; color: #F2FF3D; }
+
+/* Card da Blender Bridge no Config Models. */
+.mq-bridge-estado { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.mq-bridge-estado li { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 10px;
+  border-radius: 999px; border: 1px solid var(--hf-linha); color: var(--hf-apagado); }
+.mq-bridge-estado li::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #6b6670; }
+.mq-bridge-estado li[data-ok="true"] { color: var(--hf-texto); }
+.mq-bridge-estado li[data-ok="true"]::before { background: #3fd07a; }
+.mq-bridge-add { border: 1px solid var(--hf-neon); background: transparent; color: var(--hf-neon); border-radius: 999px;
+  padding: 1px 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.mq-bridge .mq-sub b { color: var(--hf-texto); }
+.mq-bridge .mq-botao-sec { white-space: nowrap; }

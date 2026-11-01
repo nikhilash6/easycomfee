@@ -31,8 +31,9 @@ Needs EasyComfee installed, **Blender 4.2+** (tested on 5.2), Python 3.11–3.13
 1. Run `blender-bridge\install.bat`. It creates the server environment, packs
    `blender_bridge_addon.zip` and writes `mcp-config.json` with the paths of your PC.
 2. **Blender:** Edit → Preferences → Add-ons → *Install from Disk* →
-   `blender_bridge_addon.zip`, turn it on. In the 3D Viewport press **N** → **Bridge** →
-   **Start Bridge**.
+   `blender_bridge_addon.zip`, turn it on. The Bridge starts by itself whenever Blender
+   opens (3D Viewport → **N** → **Bridge** shows "On"; the add-on preferences can turn
+   that off).
 3. **Your MCP client:** `install.bat` finds **LM Studio** and **Claude Desktop** and offers
    to add the Bridge to them (it keeps your other servers and saves a `.bak` copy first);
    restart the client afterwards. For other clients, add the `blender-bridge` entry of

@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 import atualizacao
 import biblioteca
+import bridge
 import grafos
 import andamento
 import motores
@@ -2453,6 +2454,31 @@ async def limites():
             "maquete": {"quadros": efeitos["maquete"]["max_quadros"],
                         "lado": presets.limite_maquete(hw.get("vram_gb"))},
             "profundidade": {"quadros": efeitos["profundidade"]["max_quadros"]}}
+
+
+class PedidoBridge(BaseModel):
+    clientes: list[str] = []
+
+
+@app.get("/api/bridge")
+async def estado_bridge():
+    """Blender Bridge (MCP) no Config Models: instalada, Blender ligado, clientes."""
+    return await asyncio.to_thread(bridge.estado)
+
+
+@app.post("/api/bridge/instalar")
+async def instalar_bridge(p: PedidoBridge):
+    if not bridge.PASTA.is_dir():
+        raise HTTPException(404, "The blender-bridge folder is missing from this install.")
+    if not bridge.instalar(p.clientes):
+        raise HTTPException(409, "Already setting it up.")
+    return {"ok": True}
+
+
+@app.post("/api/bridge/pasta")
+async def pasta_bridge():
+    await asyncio.to_thread(bridge.abrir_pasta)
+    return {"ok": True}
 
 
 @app.post("/api/desligar")
