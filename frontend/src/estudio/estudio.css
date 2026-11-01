@@ -2560,4 +2560,5 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .hf-mun-dir .hf-mun-duracao .hf-ctrl-largo input[type=range] { width: 100%; }
 .hf-mun-dir .hf-mun-final select { width: auto; min-width: 150px; }
 /* Menu dos estudios: o nome de cada estudio em neon. */
-.hf-est-cartao b { color: var(--hf-neon); }
+.hf-est-cartao b { color: #F2FF3D; }
+.hf-est-janela { --hf-neon: #F2FF3D; }
