@@ -202,15 +202,18 @@ export default function AbaMusica() {
         <div className="hf-mu-ajustes">
           {/* O teto vem do modelo: enquanto o catalogo carrega nao ha teto para mostrar
               (antes aparecia um "max 3 min" inventado que depois virava 5 ou 10 min). */}
-          {!(modelo === 'ace-step15' && guia) && <label className="hf-ctrl hf-ctrl-largo"><small>Length · {Math.floor(durOk / 60)}:{String(durOk % 60).padStart(2, '0')}
+          {/* Duracao e final na mesma caixa: o final fica logo abaixo do controle deslizante. */}
+          <div className="hf-ctrl hf-mun-duracao">
+          {!(modelo === 'ace-step15' && guia) && <label className="hf-ctrl-largo"><small>Length · {Math.floor(durOk / 60)}:{String(durOk % 60).padStart(2, '0')}
             {cfg ? ` (max ${Math.round(cfg.maximo / 60)} min)` : ' (checking the limit…)'}</small>
             <input type="range" min={10} max={cfg?.maximo ?? duracao} step={5} value={durOk} disabled={!cfg}
               onChange={(e) => setDuracao(Number(e.target.value))} aria-label="Length in seconds" />
             {cfg && duracao > cfg.maximo && <small className="hf-ctrl-nota">{cfg.rotulo} goes up to {Math.round(cfg.maximo / 60)} min, so the song is {Math.round(cfg.maximo / 60)} min.</small>}</label>}
-          <label className="hf-ctrl" title="Natural looks for a pause near the length; fade out fades the last seconds."><small>Ending</small>
+          <label className="hf-mun-final" title="Natural looks for a pause near the length; fade out fades the last seconds."><small>Ending</small>
             <select value={final} onChange={(e) => setFinal(e.target.value)}>
               <option value="natural">Natural ending</option><option value="fade">Fade out</option><option value="original">Keep as generated</option>
             </select></label>
+          </div>
           {modelo === 'ace-step15' && <>
             <label className="hf-ctrl"><small>Tempo</small><span><input className="hf-campo" type="number" min={BPM_MIN} max={BPM_MAX} value={bpm} style={{ width: 64 }}
               onChange={(e) => setBpm(Number(e.target.value))}

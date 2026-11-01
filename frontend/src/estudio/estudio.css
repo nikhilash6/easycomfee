@@ -2524,3 +2524,38 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 /* Pilulas centradas na altura do titulo da pagina. */
 .hf-topo.hf-topo-direita > .hf-direita { margin-top: 39px; }
 .hf-com-lateral .hf-aba.hf-est2 { padding-top: 66px; }
+/* Paleta high-end tambem nas caixas que usam outras classes: Music (abas, Style, Lyrics, Song Settings),
+   e os cartoes de passo e de modelo de Lip Sync e Genjutsu. */
+.hf-mun .hf-mun-esq, .hf-mun .hf-mun-dir, .hf-lsn .hf-ls-cartao, .hf-lsn .hf-lsn-barra, .hf-gj .hf-ls-cartao {
+  background: #181820; border-color: rgba(244, 240, 232, .085); box-shadow: 0 14px 36px rgba(0, 0, 0, .16); }
+.hf-mun .hf-vz-coluna { background: #131319; border-color: rgba(244, 240, 232, .07); box-shadow: none; }
+.hf-mun .hf-mu-modelo, .hf-gj .hf-mu-modelo { background: #17171E; border-color: rgba(244, 240, 232, .08); }
+.hf-mun .hf-mu-modelo:hover, .hf-gj .hf-mu-modelo:hover { border-color: rgba(244, 240, 232, .2); }
+.hf-mun .hf-mu-modelo[data-ativo='true'], .hf-gj .hf-mu-modelo[data-ativo='true'] {
+  background: rgba(242, 255, 61, .065); border-color: rgba(242, 255, 61, .72); }
+.hf-mun .hf-mu-modelo[data-ativo='true'] b { color: var(--hf-neon); }
+.hf-mun-dir .hf-ctrl > span, .hf-mun-dir select { background-color: #131319; border-color: rgba(244, 240, 232, .10); }
+/* Controles (Length, Ending, BPM...) e o menu dos estudios na paleta high-end. */
+.hf .hf-ctrl { background: #131319; border-color: rgba(244, 240, 232, .10); }
+.hf-est-janela { background: #181820; border-color: rgba(244, 240, 232, .1); box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+.hf-est-cartao { background: transparent; border-color: rgba(244, 240, 232, .06); }
+.hf-est-cartao:hover { background: #1D1D25; border-color: rgba(244, 240, 232, .18); }
+.hf-est-cartao[data-ativo='true'], .hf-est-cartao[aria-current] { background: rgba(242, 255, 61, .065); border-color: rgba(242, 255, 61, .55); }
+/* Music: Style e Lyrics com o mesmo cabecalho (titulo a esquerda, opcoes a direita na mesma linha),
+   as caixas de texto comecam e terminam na mesma altura e os atalhos ficam no pe das duas colunas. */
+.hf-mun .hf-mu-corpo { align-items: stretch; }
+.hf-mun .hf-vz-coluna { display: flex; flex-direction: column; gap: 12px; }
+.hf-mun .hf-vz-coluna > .hf-grupo-rotulo, .hf-mun .hf-mu-cabeca { min-height: 34px; display: flex; align-items: center; margin: 0; }
+.hf-mun .hf-mu-cabeca .hf-campo { flex-direction: row; align-items: center; gap: 0; }
+.hf-mun .hf-mu-cabeca .hf-campo > span { display: none; }
+.hf-mun .hf-mu-cabeca .hf-chips { border: 0; padding: 0; }
+.hf-mun .hf-vz-coluna textarea { flex: 1 1 auto; min-height: 150px; margin: 0; }
+.hf-mun .hf-vz-coluna .hf-vz-exemplos { margin-top: auto; }
+.hf-mun .hf-vz-coluna > .hf-grupo-rotulo, .hf-mun .hf-mu-cabeca { height: 34px; min-height: 0; box-sizing: border-box; }
+.hf-mun-dir .hf-mun-duracao { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; }
+.hf-mun-dir .hf-mun-duracao > label { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; }
+.hf-mun-dir .hf-mun-final { flex-direction: row !important; align-items: center; justify-content: space-between; padding-top: 10px !important; border-top: 1px solid rgba(244, 240, 232, .08) !important; }
+.hf-mun-dir .hf-mun-final small { font-size: 12px; color: var(--hf-apagado); }
+.hf-mun-dir .hf-mu-ajustes .hf-ctrl.hf-mun-duracao { display: flex; flex-direction: column; align-items: stretch; }
+.hf-mun-dir .hf-mun-duracao .hf-ctrl-largo input[type=range] { width: 100%; }
+.hf-mun-dir .hf-mun-final select { width: auto; min-width: 150px; }
