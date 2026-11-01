@@ -326,6 +326,16 @@ def desligar() -> None:
     time.sleep(2)  # o Windows solta os arquivos um instante depois do fim do processo
 
 
+def desligar_segundo(porta: int | None) -> None:
+    """Fecha o segundo motor (v0.41, LTX e Flux 3), que sobe sob demanda."""
+    if porta:
+        _powershell(f"""
+Get-CimInstance Win32_Process |
+  Where-Object {{ $_.CommandLine -like '*main.py*' -and $_.CommandLine -like '*{porta}*' }} |
+  ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}
+""")
+
+
 def ligar() -> bool:
     if GERENCIADO:
         return _relancar(forcar=True)

@@ -2608,3 +2608,16 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .hf-enq-popup.hf-painel-op { position: static; display: grid; grid-template-columns: repeat(4, 150px); gap: 10px; padding: 0; margin: 0; border: 0; background: none; box-shadow: none; width: auto; max-height: none; }
 .hf-enq-popup .hf-cartao-op img, .hf-enq-popup img { width: 100%; height: 84px; object-fit: cover; }
 @media (max-width: 760px) { .hf-enq-popup.hf-painel-op { grid-template-columns: repeat(2, 140px); } }
+
+/* Stop no cartao da geracao e o botao Power do topo. */
+.hf-tarefa { position: relative; }
+.hf-parar-tarefa { position: absolute; top: 8px; right: 8px; z-index: 2; border: 1px solid #E5484D99; background: #1a0f12cc;
+  color: #FF8A8E; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.hf-parar-tarefa:hover { background: #E5484D; color: #fff; }
+.hf-parar-tarefa:disabled { opacity: .6; cursor: default; }
+.hf-botao-desligar { width: 30px; height: 30px; box-sizing: border-box; padding: 0; border-radius: 10px;
+  border: 1px solid var(--hf-linha); color: var(--hf-texto); display: grid; place-items: center; cursor: pointer; }
+.hf-topo.hf-topo-direita .hf-botao-desligar:hover { border-color: #E5484D99; color: #FF8A8E; background: #2A1519; }
+.hf-desligado { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #0d0a10; color: #e9e6ee;
+  text-align: center; font-size: 15px; }
+.hf-desligado h1 { font-size: 22px; margin: 0 0 8px; color: #F2FF3D; }

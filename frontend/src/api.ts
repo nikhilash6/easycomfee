@@ -519,6 +519,7 @@ export const api = {
     ),
 
   cancelar: () => pedir<{ ok: boolean }>('/api/cancelar', { method: 'POST' }),
+  desligar: () => pedir<{ ok: boolean; motores_fechados: boolean }>('/api/desligar', { method: 'POST' }),
 
   /** Roda so o encode->decode pelo VAE do LTX, para ver o que o latente perde
       NESTE video. Nao entra na fila nem na galeria: e conferencia, nao

@@ -30,6 +30,14 @@ const ETAPAS: [RegExp, string][] = [
 ]
 // So o trecho reconhecido, ja traduzido: com s.replace o resto da frase ficava em portugues
 // ("Reading the inputs o prompt…", 30/10/2026).
+/** Interromper (o botao do topo e o do cartao): pergunta antes; devolve se parou. */
+export async function pararGeracao(naNuvem: boolean): Promise<boolean> {
+  if (!window.confirm(naNuvem
+    ? 'Stop this generation? Anything waiting in line is cancelled too. Comfy Cloud may still charge for the work already done.'
+    : 'Stop this generation? Anything waiting in line is cancelled too.')) return false
+  try { await api.cancelar(); return true } catch { return false /* o estado da tarefa avisa se nao parou */ }
+}
+
 export const emIngles = (s: string) => {
   for (const [re, t] of ETAPAS) { const m = s.match(re); if (m) return m[0].replace(re, t) }
   return s
@@ -100,14 +108,14 @@ export default function PainelAndamento({ tarefa, naFila }: { tarefa: Tarefa; na
   const pct = conhecido ? Math.min(100, passo / total * 100) : 0
   const modelo = MODELOS[tarefa.modelo_video || ''] || (tarefa.modelo === 'video' ? 'Video' : 'Generation')
   const etapa = falhou ? 'Generation stopped' : naEspera ? 'In queue' : emIngles(tarefa.detalhe) || 'Preparing'
-  // Parar (30/10/2026): o servidor ja sabia (/api/cancelar), faltava o botao. So com o motor local:
-  // na Comfy Cloud o trabalho pode seguir (e ser cobrado) mesmo com o app parando de acompanhar.
+  // Parar (30/10/2026): o servidor ja sabia (/api/cancelar), faltava o botao. Na Comfy Cloud
+  // o pedido de interromper tambem vai, mas o que ja rodou la pode ser cobrado (o aviso diz).
   const { naNuvem } = useContext(MotorCtx)
   const [parando, setParando] = useState(false)
   const parar = async () => {
-    if (!window.confirm('Stop this generation? Anything waiting in line is cancelled too.')) return
     setParando(true)
-    try { await api.cancelar() } catch { /* o estado da tarefa avisa se nao parou */ } finally { setParando(false) }
+    await pararGeracao(naNuvem)
+    setParando(false)
   }
 
   return (
@@ -121,8 +129,8 @@ export default function PainelAndamento({ tarefa, naFila }: { tarefa: Tarefa; na
         <span className="andamento-tempo">{falhou ? tempo(tarefa.duracao) : tempo(agora - inicio)}</span>
         <span aria-hidden="true">{aberto ? '⌃' : '⌄'}</span>
       </button>
-      {!falhou && !naNuvem && <button type="button" className="andamento-parar" onClick={parar} disabled={parando}
-        title="Stop the generation running on your GPU (and anything waiting in line)">{parando ? 'Stopping…' : '■ Stop'}</button>}
+      {!falhou && <button type="button" className="andamento-parar" onClick={parar} disabled={parando}
+        title="Stop the generation (and anything waiting in line)">{parando ? 'Stopping…' : '■ Stop'}</button>}
       {!falhou && <div className="andamento-barra andamento-barra-topo" data-indeterminado={!conhecido}
         {...(conhecido ? { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': passo,
           'aria-label': 'Steps done in the current stage' } : { 'aria-label': 'Generating, progress unknown' })}>

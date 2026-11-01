@@ -2442,6 +2442,34 @@ def _geracao_em_andamento() -> bool:
         for t in TAREFAS.values())
 
 
+@app.post("/api/desligar")
+async def desligar():
+    """O botao Power: fecha os motores que o app sabe religar e depois o proprio app.
+
+    Recusa com algo gerando aqui ou na fila de um motor (os motores podem
+    atender outro app ou um script de teste). O ComfyUI de outra pessoa, que o
+    app nao sabe ligar de novo, fica de pe."""
+    if _geracao_em_andamento():
+        raise HTTPException(409, "A generation is running. Wait for it to finish or stop it first.")
+    async with httpx.AsyncClient(timeout=5) as c:
+        for base in {comfy.BASE_PRINCIPAL, comfy.BASE_FLUX3}:
+            try:
+                q = (await c.get(f"{base}/queue")).json()
+            except (httpx.HTTPError, ValueError):
+                continue  # motor fora do ar: nada a perder
+            if q.get("queue_running") or q.get("queue_pending"):
+                raise HTTPException(409, "ComfyUI is still working on something. Wait for it to finish first.")
+    fechou = False
+    if motores.pode_religar():
+        await asyncio.to_thread(motores.desligar)
+        if not motor_flux3.UNICO:
+            await asyncio.to_thread(motores.desligar_segundo, urlsplit(comfy.BASE_FLUX3).port)
+        fechou = True
+    # Responde antes de sair: a tela precisa receber a confirmacao.
+    asyncio.get_running_loop().call_later(1.0, os._exit, 0)
+    return {"ok": True, "motores_fechados": fechou}
+
+
 @app.post("/api/liberar-memoria")
 async def liberar_memoria():
     """Descarrega os modelos e esvazia a placa, a pedido do usuario.

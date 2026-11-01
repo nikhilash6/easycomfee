@@ -1,7 +1,7 @@
 import { Children, Component, useContext, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { api, ouvirTarefas, referenciaDaGaleria, urlImagem, type Referencia, type Tarefa } from '../api'
 import { abrirVisualizador, recriar, reusarPrompt } from './Visualizador'
-import { emIngles } from '../PainelAndamento'
+import { emIngles, pararGeracao } from '../PainelAndamento'
 import { MotorCtx } from './motor'
 
 // Shared pieces of the new studio: live jobs, result tiles, upload slots.
@@ -356,6 +356,9 @@ export function erroCurto(erro: string): string {
 /** One job: progress while it runs, the result when done. */
 export function CartaoTarefa({ t }: { t: Tarefa }) {
   const prontos = arquivos(t)
+  const { naNuvem } = useContext(MotorCtx)
+  const [parando, setParando] = useState(false)
+  const rodando = ['na_fila', 'preparando', 'submetendo', 'executando'].includes(t.estado)
   return (
     <div className="hf-tarefa" data-estado={t.estado}>
       {t.estado === 'pronto' && prontos.length > 0
@@ -367,6 +370,11 @@ export function CartaoTarefa({ t }: { t: Tarefa }) {
             {t.erro && <span className="hf-erro" title={t.erro}><ComLinks texto={erroCurto(t.erro)} /></span>}
           </div>
         )}
+      {rodando && (
+        <button type="button" className="hf-parar-tarefa" disabled={parando} title="Stop this generation"
+          onClick={async () => { setParando(true); if (!await pararGeracao(naNuvem)) setParando(false) }}>
+          {parando ? 'Stopping…' : '■ Stop'}</button>
+      )}
       {t.estado === 'erro' && (
         <button type="button" className="hf-dispensar" title="Dismiss this error" aria-label="Dismiss this error"
           onClick={async () => {

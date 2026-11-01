@@ -66,8 +66,10 @@ def quadros(modelo, duracao):
 def _fim(g, imagens, vae, fps, prefixo, tiled=False):
     if tiled:
         g["decodifica"] = {"class_type": "VAEDecodeTiled", "inputs": {
+            # 256 quadros de uma vez: os clipes daqui (ate 241) saem num bloco so.
+            # Com 64/8 havia uma emenda a cada 56 quadros (nitidez caia nela).
             "samples": imagens, "vae": vae, "tile_size": 512, "overlap": 64,
-            "temporal_size": 64, "temporal_overlap": 8}}
+            "temporal_size": 256, "temporal_overlap": 64}}
     else:
         g["decodifica"] = {"class_type": "VAEDecode", "inputs": {"samples": imagens, "vae": vae}}
     g["monta"] = {"class_type": "CreateVideo", "inputs": {"images": ["decodifica", 0], "fps": fps}}
