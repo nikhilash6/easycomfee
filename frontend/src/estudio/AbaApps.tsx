@@ -1,7 +1,9 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { MotorCtx } from './motor'
-import { api, referenciaDaGaleria, urlEntrada, type Referencia } from '../api'
-import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, arquivos, mensagem, rotuloCusto, useCusto, useTarefas, Galeria, MAX_PROMPT } from './comum'
+import { api, referenciaDaGaleria, urlEntrada, urlImagem, type Referencia } from '../api'
+import { ThenNow, abrirVisualizador } from './Visualizador'
+import { Popup } from './AbaCinema'
+import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, arquivos, mensagem, rotuloCusto, useCusto, useTarefas, Galeria, MAX_PROMPT, TituloPagina } from './comum'
 
 // VFX Apps: one card per effect, all open-weight LTX IC-LoRAs. Pick a card,
 // drop a video, press Apply. Each card id is an effect of VIDEO_TRANSFORMAR
@@ -177,7 +179,7 @@ function AvisoMaquete({ aoFechar }: { aoFechar: () => void }) {
             and paints the scene like that image.</li>
         </ul>
         <p className="hf-dica">Best results when the blocks have the rough shape of the real object (a low sports car, a person), not just a cube.
-          More tips in “Tips for better results”, above the box.</p>
+          More tips in “Experimental · Tips”, next to the page title.</p>
         <div className="hf-linha-controles">
           <label className="hf-toggle"><input type="checkbox" checked={naoMostrar} onChange={(e) => setNaoMostrar(e.target.checked)} /> Don't show this again</label>
           <button ref={botao} type="button" className="hf-gerar" onClick={fechar}>Got it</button>
@@ -221,7 +223,12 @@ const SO_LOCAL = new Set(['restaurar', 'slowmo', 'maquete', 'mapa_profundidade']
 
 export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
   const tarefas = useTarefas()
-  const [app, setApp] = useState<App | null>(() => APPS.find((a) => location.hash === `#apps/${a.id}`) ?? null)
+  // Abre no efeito do endereco; sem ele, no 3D render -> Video (o primeiro da lista, como no layout).
+  const [app, setApp] = useState<App | null>(() => APPS.find((a) => location.hash === `#apps/${a.id}`) ?? APPS.find((a) => a.id === 'maquete') ?? null)
+  const [busca, setBusca] = useState('')
+  const [comparar, setComparar] = useState<'cortina' | 'lado'>('cortina')
+  const [aplicadoEm, setAplicadoEm] = useState(0)
+  const [dicasMaquete, setDicasMaquete] = useState(false)
   const [video, setVideo] = useState<Referencia | null>(null)
   const [imagem, setImagem] = useState<Referencia | null>(null)
   const [texto, setTexto] = useState('')
@@ -468,7 +475,7 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
   // Tambem quando a pagina ja abre no 3D render -> Video (link #apps/maquete).
   const [avisoMaquete, setAvisoMaquete] = useState(() => app?.id === 'maquete' && !avisoMaqueteVisto())
   const abrir = (a: App) => {
-    setApp(a); setTexto(a.texto ?? ''); setErro(null)
+    setApp(a); setTexto(a.texto ?? ''); setErro(null); setAplicadoEm(0)
     if (a.id === 'maquete' && !avisoMaqueteVisto()) setAvisoMaquete(true)
   }
   const precisaVideo = app?.video !== false
@@ -492,7 +499,7 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
 
   const aplicar = async () => {
     if (!app) return
-    setErro(null)
+    setErro(null); setAplicadoEm(Date.now() / 1000 - 2)  // o resultado deste Apply vai para o comparador
     try {
       if (ehMapa) {
         await api.gerar({ modelo: 'profundidade_video', prompt: '', proporcao: '1:1', mapa_cor: corMapa, exr,
@@ -521,31 +528,20 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
   const minhas = tarefas.filter((t) => t.modelo === 'transformar_video' || t.modelo === 'profundidade_video'
     || (t.modelo === 'video' && t.prompt.includes('Slow motion')) || quadroMaquete(t.prompt))
 
+  const emCurso = minhas.filter((t) => t.estado !== 'pronto' && t.estado !== 'erro')
+  const tarefaFeita = aplicadoEm ? minhas.find((t) => t.estado === 'pronto' && t.criada_em >= aplicadoEm) : undefined
+  const resultado = tarefaFeita ? arquivos(tarefaFeita)[0] : undefined
+
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">VFX STUDIO · LTX OPEN WEIGHTS</span>
-        <h1>Transform your <em>footage</em></h1>
-        <p className="hf-dica">Each app is an open LTX IC-LoRA, on your own GPU or on Comfy Cloud. Pick one and drop a video.</p>
-      </div>
-
-      {avisoMaquete && <AvisoMaquete aoFechar={() => setAvisoMaquete(false)} />}
-      <div className="hf-apps">
-        {[...APPS.filter((x) => x.id === 'maquete'), ...APPS.filter((x) => x.id !== 'maquete')].map((a) => (
-          <button key={a.id} className="hf-app" data-destaque={a.id === 'maquete'} data-ativo={app?.id === a.id} aria-pressed={app?.id === a.id} onClick={() => abrir(a)}>
-            <video src={`/exemplos/${a.id}.mp4?v=6`} muted loop autoPlay playsInline
-              onError={(e) => { (e.currentTarget as HTMLVideoElement).style.visibility = 'hidden' }} />
-            {a.id === 'maquete' && <small className="hf-selo-neon">Experimental</small>}
-            <b>{a.nome}{naNuvem && SO_LOCAL.has(a.id) && <small> · local GPU only</small>}</b>
-            <span>{a.frase}</span>
-          </button>
-        ))}
-      </div>
-
-      {app && (<>
-          {app.id === 'maquete' && (
-            <details className="hf-experimental hf-experimental-fora hf-dicas">
-              <summary><b>Experimental</b> · Tips for better results</summary>
+    <div className="hf-aba hf-img hf-vfx">
+      <TituloPagina antes="Transform your" destaque="footage" sub="One-click LTX effects for videos you already have.">
+        {/* As dicas do 3D render ficam ao lado do titulo, como o How it works do Cinema, e so nesse efeito. */}
+        {app?.id === 'maquete' && (
+          <button type="button" className="hf-cin-dicas-botao" onClick={() => setDicasMaquete(true)}><b>Experimental</b> · Tips <i aria-hidden>›</i></button>
+        )}
+        {dicasMaquete && app?.id === 'maquete' && (
+          <Popup titulo="3D render → Video · Tips for better results" aoFechar={() => setDicasMaquete(false)}>
+            <div className="hf-dicas hf-cin-dicas">
               <ul>
                 <li><b>Shape the blocks roughly like the real thing</b> (a low box for a car, a simple figure for a person), on a visible ground, with smooth camera moves at 24 fps.</li>
                 <li><b>Take a screenshot wherever a new side of the object shows</b> (it turns, the camera goes around it): the model only invents what it never saw.</li>
@@ -564,8 +560,60 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
                 <li><b>Typical times on 16 GB:</b> about 1 to 1.5 min per frame with FLUX 3, about 5 min for a 14.7 s video at 576p, about 8 min at 720p.</li>
                 <li><b>Screenshots wait in line:</b> while a video is generating, new screenshots show “Taking the screenshot…” until it ends.</li>
               </ul>
-            </details>
-          )}
+                        </div>
+          </Popup>
+        )}
+      </TituloPagina>
+      {avisoMaquete && <AvisoMaquete aoFechar={() => setAvisoMaquete(false)} />}
+      <div className="hf-vfx-grade">
+        <aside className="hf-img-col hf-vfx-esq" aria-label="Effects">
+          <label className="hf-vfx-busca"><span aria-hidden>⌕</span>
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Search effects…" aria-label="Search effects" /></label>
+          <span className="hf-img-titulo">Effects</span>
+          <div className="hf-vfx-lista">
+            {[...APPS.filter((x) => x.id === 'maquete'), ...APPS.filter((x) => x.id !== 'maquete')]
+              .filter((a) => !busca.trim() || (a.nome + ' ' + a.frase).toLowerCase().includes(busca.trim().toLowerCase()))
+              .map((a) => (
+              <button key={a.id} className="hf-app hf-vfx-cartao" data-ativo={app?.id === a.id} aria-pressed={app?.id === a.id} onClick={() => abrir(a)}>
+                <video src={`/exemplos/${a.id}.mp4?v=9#t=1.5`} muted loop playsInline preload="metadata"
+                  onMouseEnter={(e) => { e.currentTarget.play().catch(() => {}) }} onMouseLeave={(e) => e.currentTarget.pause()}
+                  onError={(e) => { (e.currentTarget as HTMLVideoElement).style.visibility = 'hidden' }} />
+                {a.id === 'maquete' && <small className="hf-selo-neon">Experimental</small>}
+                <b>{a.nome}{naNuvem && SO_LOCAL.has(a.id) && <small> · local GPU</small>}</b>
+                <span>{a.frase}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="hf-vfx-centro">
+          <div className="hf-vfx-topo">
+            <h2>{app?.nome ?? 'Pick an effect'}</h2>
+            <div className="hf-vfx-modos" role="group" aria-label="Compare">
+              <button type="button" data-ativo={comparar === 'cortina'} aria-pressed={comparar === 'cortina'} onClick={() => setComparar('cortina')}>Before / After</button>
+              <button type="button" data-ativo={comparar === 'lado'} aria-pressed={comparar === 'lado'} onClick={() => setComparar('lado')}>Side by side</button>
+              {resultado && <button type="button" onClick={() => abrirVisualizador(resultado)} aria-label="Full screen" title="Full screen with details">⛶</button>}
+            </div>
+          </div>
+          <div className="hf-vfx-palco">
+            {video && resultado ? <ThenNow antes={urlEntrada(video.nome)} depois={urlImagem(resultado)} modo={comparar} rotulos={['Before', 'After']} />
+              : resultado ? <video src={urlImagem(resultado)} controls autoPlay loop muted playsInline />
+              : video ? <video src={urlEntrada(video.nome)} controls muted playsInline />
+              : app ? <><video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline /><span className="hf-vfx-exemplo">Example · drop your video on the right</span></>
+              : <div className="hf-img-vazio"><b>Pick an effect</b><span>Choose one on the left.</span></div>}
+            {emCurso[0] && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
+          </div>
+        </section>
+
+        <aside className="hf-img-col hf-img-dir hf-vfx-dir" aria-label="Effect settings">
+          {app ? (<>
+            <div className="hf-vfx-cabeca">
+              <video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline />
+              {app.id === 'maquete' && <small className="hf-selo-neon">Experimental</small>}
+              <b>{app.nome}</b>
+              <span>{app.frase}</span>
+            </div>
+      {app && (<>
         <div className="hf-barra-prompt" style={{ marginTop: app.id === 'maquete' ? 12 : 20 }}
           onDragOver={(e) => { if (precisaVideo && e.dataTransfer.types.includes('Files')) e.preventDefault() }}
           onDrop={(e) => {
@@ -677,10 +725,15 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
             {app.formatos && <Chips rotulo="Output format" opcoes={['16:9', '9:16', '1:1'].map((f) => ({ id: f, rotulo: f }))} valor={formato} aoMudar={setFormato} />}
             {semPacote && <span className="hf-dica">Install “Video depth map” in Config Models to use this app.</span>}
             {bloqueado && <span className="hf-dica">This effect is not on Comfy Cloud yet. Switch to Local to use it.</span>}
-            <BotaoGerar rotulo={app.id === 'maquete' && modoMaquete === 'avancado' ? 'Generate video ✦' : 'Apply ✦'} est={custo} desligado={!pronto} aoClicar={aplicar} />
+            <BotaoGerar rotulo={app.id === 'maquete' && modoMaquete === 'avancado' ? 'Generate video ✦' : '✦ Apply effect'} est={custo} desligado={!pronto} aoClicar={aplicar} />
           </div>}
           {erro && !(app.chaves && video && modoMaquete === 'avancado') && <p className="hf-erro">{erro}</p>}
         </div>
+        </>)}
+          </>) : <p className="hf-dica">Pick an effect on the left.</p>}
+        </aside>
+      </div>
+      {app && (<>
         {app.chaves && video && modoMaquete === 'avancado' && (
           // Caixa separada do envio do render: os 3 passos (30/10/2026).
           <div className="hf-barra-prompt hf-caixa-passos">

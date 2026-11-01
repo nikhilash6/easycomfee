@@ -1,3 +1,4 @@
+import type React from 'react'
 // Botao "Studios" da barra de cima: os seis estudios num so lugar, numa janela
 // com cartoes (capa, nome, uma linha). A barra passou de 13 para 9 itens e cabe
 // inteira em laptop e Full HD. A janela e "fixed", fora da fileira de abas, porque
@@ -16,7 +17,7 @@ export const ESTUDIOS = [
   { id: 'cinema', rotulo: 'Cinema Studio', frase: 'Direct the shot: camera, lens, light.' },
 ] as const
 
-export default function MenuEstudios({ aba, ir }: { aba: string; ir: (id: string) => void }) {
+export default function MenuEstudios({ aba, ir, lateral = false, icone }: { aba: string; ir: (id: string) => void; lateral?: boolean; icone?: React.ReactNode }) {
   const [aberto, setAberto] = useState(false)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const botao = useRef<HTMLButtonElement>(null)
@@ -27,7 +28,9 @@ export default function MenuEstudios({ aba, ir }: { aba: string; ir: (id: string
     const r = botao.current!.getBoundingClientRect()
     // Centraliza a janela no botao sem passar das bordas da tela.
     const largura = Math.min(560, innerWidth - 24)
-    setPos({ x: Math.max(12, Math.min(r.left + r.width / 2 - largura / 2, innerWidth - largura - 12)), y: r.bottom + 10 })
+    // Na barra lateral a janela abre a direita do item, alinhada ao topo dele.
+    if (lateral) setPos({ x: Math.min(r.right + 12, innerWidth - largura - 12), y: Math.max(12, Math.min(r.top - 8, innerHeight - 420)) })
+    else setPos({ x: Math.max(12, Math.min(r.left + r.width / 2 - largura / 2, innerWidth - largura - 12)), y: r.bottom + 10 })
     setAberto(true)
   }
 
@@ -54,7 +57,7 @@ export default function MenuEstudios({ aba, ir }: { aba: string; ir: (id: string
       {/* Com um estudio aberto (Cinema, LTX...), o botao e a "pagina atual" da barra. */}
       <button ref={botao} type="button" data-ativo={!!atual} aria-current={atual ? 'page' : undefined} aria-haspopup="dialog" aria-expanded={aberto}
         onClick={() => (aberto ? setAberto(false) : abrir())}>
-        {atual ? atual.rotulo : 'Studios'} <span className="hf-est-seta" aria-hidden>▾</span>
+        {icone}<span className="hf-lat-rotulo">{atual ? atual.rotulo : 'Studios'}</span> <span className="hf-est-seta" aria-hidden>{lateral ? '›' : '▾'}</span>
       </button>
       {aberto && createPortal(<>
         <div className="hf-est-veu" aria-hidden onClick={() => setAberto(false)} />
@@ -62,7 +65,7 @@ export default function MenuEstudios({ aba, ir }: { aba: string; ir: (id: string
           {ESTUDIOS.map((e) => (
             <button key={e.id} type="button" className="hf-est-cartao" data-ativo={e.id === aba} aria-current={e.id === aba ? 'page' : undefined}
               onClick={() => { setAberto(false); ir(e.id) }}>
-              <img src={`/studios/${e.id}.webp`} alt="" />
+              <img src={`/studios/${e.id}.webp?v=3`} alt="" />
               <span><b>{e.rotulo}</b><small>{e.frase}</small></span>
             </button>
           ))}

@@ -3,7 +3,7 @@ import { CartaoModelo, LinhaOnde, MotorCtx, useEscolha } from './motor'
 import { useReusarPrompt } from './Visualizador'
 import { api } from '../api'
 import BlocoYue from './BlocoYue'
-import { BotaoGerar, CartaoTarefa, Chips, mensagem, useCusto, useTarefas, Galeria, parteDoHash, useLembrado, textoDoDetalhe, MAX_PROMPT } from './comum'
+import { BotaoGerar, CartaoTarefa, Chips, mensagem, useCusto, useTarefas, Galeria, parteDoHash, useLembrado, textoDoDetalhe, MAX_PROMPT, TituloPagina } from './comum'
 
 // Music: the three open-weight song models of the backend (musica.py), on
 // your GPU or on Comfy Cloud, plus YuE2 and YuE2 Cover through Plenio (this
@@ -129,13 +129,10 @@ export default function AbaMusica() {
   const minhas = tarefas.filter((t) => t.modelo === 'musica' && !(t.estado === 'pronto' && t.imagens.length === 0))
 
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">MUSIC · OPEN WEIGHTS</span>
-        <h1>Make a <em>song</em></h1>
-        <p className="hf-dica">Describe the style, write the lyrics, get a full track, on your GPU or on Comfy Cloud.</p>
-      </div>
-
+    <div className="hf-aba hf-img hf-mun">
+      <TituloPagina antes="Make a" destaque="song" sub="Describe the style, write the lyrics, get a full track." />
+      <div className="hf-mun-grade">
+      <div className="hf-mun-esq">
       <div className="hf-mu-modelos">
         {modelos.length === 0 && !falhaCarga && [0, 1, 2, 3, 4].map((k) => (
           <div key={k} className="hf-mu-modelo" data-carregando="true"><b>Checking models…</b>
@@ -196,7 +193,12 @@ export default function AbaMusica() {
         </div>
 
         {modeloDesconhecido && <p className="hf-dica" role="status">{`"${modelo}" is not a music model here. Pick one of the cards above.`}</p>}
-        {cfg?.plenio ? <BlocoYue key={cfg.id} cfg={cfg} prompt={prompt} /> : <>
+        {cfg?.plenio && <BlocoYue key={cfg.id} cfg={cfg} prompt={prompt} />}
+      </div>
+      </div>
+      <aside className="hf-img-col hf-mun-dir" aria-label="Song settings">
+        <b className="hf-mun-dir-titulo">Song Settings</b>
+        {cfg?.plenio ? <p className="hf-dica">{cfg.rotulo} has its own steps on the left: lyrics, score review, then the song.</p> : <>
         <div className="hf-mu-ajustes">
           {/* O teto vem do modelo: enquanto o catalogo carrega nao ha teto para mostrar
               (antes aparecia um "max 3 min" inventado que depois virava 5 ou 10 min). */}
@@ -251,11 +253,14 @@ export default function AbaMusica() {
             ? <span className="hf-erro">{cfg.rotulo} is not installed on this computer. Install it in Config Models, or choose Cloud on its card.</span>
             : cfg && !cfg.disponivel && <span className="hf-erro">{cfg.motivo}</span>}
           <span className="hf-espaco" />
-          <BotaoGerar est={custo} desligado={!pronto} aoClicar={gerar} />
+          <BotaoGerar rotulo="Generate ✦" est={custo} desligado={!pronto} aoClicar={gerar} />
         </div>
         </>}
         {erro && <p className="hf-erro">{erro}</p>}
+      </aside>
       </div>
+
+      <h3 className="hf-lsn-sub">Recent songs</h3>
 
       <Galeria tipo="audio">
         {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}

@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useReusarPrompt } from './Visualizador'
-import { api, referenciaDaGaleria, type GeradorVideo, type Modelo, type ModeloNuvem, type Referencia, type Tarefa } from '../api'
+import { createPortal } from 'react-dom'
+import { abrirVisualizador, useReusarPrompt } from './Visualizador'
+import { api, urlImagem, referenciaDaGaleria, type GeradorVideo, type Modelo, type ModeloNuvem, type Referencia, type Tarefa } from '../api'
 import {
   ABERTURAS, CAMERAS, ENQUADRAMENTOS, FILMES, FOCAIS, GENEROS, GRADES, LENTES, LUZES, MOVIMENTOS,
   montarPrompt, texto, visualDe, type Cor, type Direcao, type Opcao,
 } from './cinema'
-import { BotaoGerar, CartaoTarefa, SlotImagem, arquivos, eVideo, mensagem, useCusto, useTarefas, vezes, useLembrado, MAX_PROMPT , AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes } from './comum'
+import { BotaoGerar, CartaoTarefa, SlotImagem, arquivos, eVideo, mensagem, useCusto, useTarefas, vezes, useLembrado, MAX_PROMPT , AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes, TituloPagina } from './comum'
 import { IconeCamera } from './IconesCamera'
 import { AvisoInstalar, GruposAbertos, useEscolha, useFaltaInstalar, useValor } from './motor'
 
@@ -54,6 +55,26 @@ function Cartao({ grupo, o, ativo, aoEscolher }: { grupo: string; o: Cor; ativo:
   )
 }
 
+/** Opcoes de Camera, Light, Film, Look e Grade num popup no meio da tela, com o fundo escurecido.
+ *  Fecha no ×, clicando fora ou com Esc. */
+export function Popup({ titulo, aoFechar, children }: { titulo: string; aoFechar: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') aoFechar() }
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [aoFechar])
+  // Vai direto no <body>: dentro da coluna o "fixed" ficava preso a ela e o popup saia fora do centro.
+  return createPortal(
+    <div className="hf-cin-popup-fundo" onClick={aoFechar}>
+      <div className="hf-cin-popup" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
+        <header><b>{titulo}</b><button type="button" onClick={aoFechar} aria-label="Close">×</button></header>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function Linha({ rotulo, valor, miniatura, aberto, aoAbrir }: {
   rotulo: string; valor: string; miniatura: ReactNode; aberto: boolean; aoAbrir: () => void
 }) {
@@ -98,9 +119,11 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
   // Cast: people, objects and places, called @image1, @image2… in the scene.
   const [cast, setCast] = useState<Referencia[]>([])
   const [diretor, setDiretor] = useState(true)
+  const [planoSel, setPlanoSel] = useState<number | null>(null)
   const [d, setD] = useState<Direcao>({ camera: 'alexa', lente: 'esferica', focal: '35', abertura: '2.8',
     luz: 'auto', filme: 'auto', genero: 'auto', grade: 'auto' })
   const [aberto, setAberto] = useState<Grupo | null>(null)
+  const [dicas, setDicas] = useState(false)
   const [enqAberto, setEnqAberto] = useState<number | null>(null)
   const [planos, setPlanos] = useState<Plano[]>([
     { id: 1, enquadramento: 'aberto', acao: '', movimento: 'dolly_in' },
@@ -249,16 +272,26 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
   const mini = (g: string, id: string) => <img src={foto(g, id)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} />
   const proporcoes = video ? proporcoesVideo : PROPORCOES_IMAGEM
 
-  return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">CINEMA STUDIO</span>
-        <h1>Direct your scene, <em>shot by shot</em></h1>
-      </div>
+  // Layout de 31/10/2026: cena e elenco a esquerda, o plano escolhido grande no centro
+  // com a lista de planos em fileira, o equipamento em cartoes a direita e o rodape embaixo.
+  const sel = planos.find((p) => p.id === planoSel) ?? planos[0]
+  const tSel = sel ? tarefa(sel.tarefa) : undefined
+  const arqSel = tSel?.estado === 'pronto' ? arquivos(tSel)[0] : undefined
+  const miniPlano = (p: Plano) => {
+    const t = tarefa(p.tarefa); const a = t?.estado === 'pronto' ? arquivos(t)[0] : undefined
+    return a ? (eVideo(a.nome) ? <video src={urlImagem(a) + '#t=0.5'} muted preload="metadata" /> : <img src={urlImagem(a)} alt="" />)
+      : t ? <span className="hf-shot-andamento">{t.estado === 'erro' ? 'Failed' : `${t.detalhe || 'Shooting…'}`}</span>
+      : <img src={foto('enquadramento', p.enquadramento)} alt="" />
+  }
 
-      {/* Como usar, recolhido (mesmo estilo das dicas do 3D render -> Video). */}
-      <details className="hf-experimental hf-dicas hf-dicas-cinema">
-        <summary><b>How it works</b> · Tips for better shots</summary>
+  return (
+    <div className="hf-aba hf-img hf-cin">
+      <TituloPagina antes="Direct your" destaque="scene" selo="BETA" sub="Set the camera, light and look once; every shot keeps them.">
+        <button type="button" className="hf-experimental hf-dicas hf-dicas-cinema hf-cin-dicas-botao" onClick={() => setDicas(true)}>
+          <b>How it works</b> <i aria-hidden>›</i></button>
+        {dicas && (
+          <Popup titulo="How it works" aoFechar={() => setDicas(false)}>
+          <div className="hf-dicas hf-cin-dicas">
         <ul>
           <li><b>1. Write the scene</b>: who, where and what is happening, in a sentence or two. Any language works with Director mode on.</li>
           <li><b>2. Add your cast</b> (optional): pictures of people, objects or places. Call them <b>@image1</b>, <b>@image2</b>… in the scene, so every shot keeps the same faces and things.</li>
@@ -273,10 +306,13 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
           <li><b>To animate a still you like</b>: shoot it in Image mode, then click <b>▶ Animate</b> on the result. It opens the Video tab in Image → Video with that picture.</li>
           <li>The small picture in each shot is just an example of the framing; it is replaced by your result.</li>
         </ul>
-      </details>
-
-      <div className="hf-barra-prompt hf-cinema">
-        <div className="hf-linha-controles hf-cinema-topo">
+          </div>
+          </Popup>
+        )}
+      </TituloPagina>
+      <div className="hf-cin-grade">
+        <aside className="hf-img-col hf-cin-esq hf-cinema" aria-label="Scene">
+          <div className="hf-cinema-topo">
           <div className="hf-tipo" role="tablist">
             <button role="tab" data-ativo={!video} aria-selected={!video} onClick={() => setTipo('imagem')}>Image</button>
             <button role="tab" data-ativo={video} aria-selected={video} onClick={() => setTipo('video')}>Video</button>
@@ -284,8 +320,7 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
           <label className="hf-chave-dir" title="A local language model rewrites the scene as one film frame, turning the gear into how the image looks">
             <input type="checkbox" checked={diretor} onChange={(e) => setDiretor(e.target.checked)} /> Director mode
           </label>
-        </div>
-
+          </div>
         <textarea aria-label="Scene description" maxLength={MAX_PROMPT} className="hf-cinema-texto" value={cena} onChange={(e) => setCena(e.target.value)} rows={3}
           placeholder={castOk.length > 1 ? 'e.g. @image1 and @image2 argue in a rain-soaked neon alley at night…'
             : 'Who, where, what is happening: a detective in a rain-soaked neon alley at night…'} />
@@ -306,60 +341,36 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
         )}
         {cast.length > castOk.length && <p className="hf-dica">{cast.length - castOk.length} cast image(s) are kept but not sent: this model takes {maxCast}.</p>}
 
-        <div className="hf-direcao">
-          <Linha rotulo="Camera" miniatura={<IconeCamera grupo="camera" id={d.camera} />} valor={camResumo}
-            aberto={aberto === 'camera'} aoAbrir={() => abrir('camera')} />
-          {aberto === 'camera' && (
-            <div className="hf-painel-op hf-painel-camera">
-              {([['Body', CAMERAS, 'camera'], ['Lens', LENTES, 'lente'], ['Focal length', FOCAIS, 'focal'], ['Aperture', ABERTURAS, 'abertura']] as const).map(([r, l, c]) => (
-                <div key={c}>
-                  <span className="hf-grupo-rotulo">{r}</span>
-                  {l.map((o) => (
-                    <button key={o.id} type="button" className="hf-cartao-op hf-cartao-icone" data-ativo={d[c] === o.id} aria-pressed={d[c] === o.id}
-                      onClick={() => mudar(c)(o.id)} title={o.texto}>
-                      <IconeCamera grupo={c} id={o.id} /><b>{o.rotulo}</b>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-          {(['luz', 'filme', 'genero', 'grade'] as const).map((g) => (
-            <div key={g}>
-              <Linha rotulo={painel[g].rotulo} miniatura={mini(g, d[painel[g].campo])}
-                valor={rot(painel[g].lista, d[painel[g].campo])} aberto={aberto === g} aoAbrir={() => abrir(g)} />
-              {aberto === g && (
-                <div className="hf-painel-op">
-                  {painel[g].lista.map((o) => <Cartao key={o.id} grupo={g} o={o} ativo={d[painel[g].campo] === o.id}
-                    aoEscolher={() => { mudar(painel[g].campo)(o.id); setAberto(null) }} />)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+        </aside>
 
-      {/* Segunda caixa: o modelo e a lista de planos, com o rodape de geracao (30/10/2026). */}
-      <div className="hf-barra-prompt hf-cinema hf-cinema-planos">
-        <span className="hf-passo">Shot list</span>
-        <p className="hf-dica">Every shot keeps the same cast, light and color.{video && ' Each shot is a clip with its own camera move.'}</p>
-        <div className="hf-cinema-modelo">
-            {video ? (
-              <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorVid} onChange={(e) => escolherVid(e.target.value)} aria-label="Video model">
-                <GruposAbertos itens={[{ id: 'ltx', rotulo: 'LTX 2.5' }, { id: 'minimax', rotulo: 'MiniMax H3' }]} api={geradores} />
-              </select></label>
-            ) : (
-              <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorImg} onChange={(e) => escolherImg(e.target.value)} aria-label="Image model">
-                <GruposAbertos itens={modelos.map((m) => ({ id: m.id, rotulo: m.rotulo, nuvem: m.nuvem }))} api={apiModelos} />
-              </select></label>
-            )}
-        </div>
-        {planos.map((p, i) => {
-          const t = tarefa(p.tarefa)
-          return (
-            <div key={p.id} className="hf-plano">
-              <div className="hf-plano-quadro">
-                {t ? <CartaoTarefa t={t} /> : <img src={foto('enquadramento', p.enquadramento)} alt={`Shot ${i + 1}: ${rot(ENQUADRAMENTOS, p.enquadramento)}`} />}
+        <section className="hf-cin-centro">
+          <div className="hf-cin-palco">
+            {arqSel ? (eVideo(arqSel.nome) ? <video key={arqSel.nome} src={urlImagem(arqSel)} controls playsInline />
+              : <img src={urlImagem(arqSel)} alt="" onClick={() => abrirVisualizador(arqSel)} />)
+              : tSel ? <CartaoTarefa t={tSel} />
+              : <div className="hf-img-vazio"><b>Your shots appear here</b><span>Write the scene, set the look and press Generate shots.</span></div>}
+            {arqSel && <button type="button" className="hf-vid-tela" onClick={() => abrirVisualizador(arqSel)} aria-label="Full screen">⛶</button>}
+          </div>
+          <div className="hf-cin-planos hf-cinema">
+            <div className="hf-cin-planos-topo">
+              <div><b>Shot list</b><span>Every shot keeps the same cast, light and color.{video && ' Each shot is a clip with its own camera move.'}</span></div>
+        {/* Teto de 8 planos: o botao da lugar a uma nota (antes sumia sem dizer por que). */}
+        {planos.length < 8 ? (
+          <button type="button" className="hf-botao-sec hf-mais-plano hf-cin-mais"
+            onClick={() => setPlanos((a) => [...a, { id: proximoPlano++, enquadramento: 'medio', acao: '', movimento: 'estatica' }])}>+ Add shot</button>
+        ) : <p className="hf-dica">Up to 8 shots per scene. Remove one to add another.</p>}
+            </div>
+            <div className="hf-cin-fila">
+              {planos.map((p, i) => {
+                const t = tarefa(p.tarefa)
+                return (
+                  <div key={p.id} className="hf-shot" data-ativo={sel?.id === p.id} onClick={() => setPlanoSel(p.id)}>
+                    <span className="hf-shot-num">{i + 1}</span>
+                    <div className="hf-shot-topo"><b>Shot {i + 1}</b>{video && <small>{duracaoDe(p)}.0s</small>}
+                      {planos.length > 1 && <button type="button" className="hf-shot-x" aria-label={`Remove shot ${i + 1}`} title={`Remove shot ${i + 1}`}
+                        onClick={(e) => { e.stopPropagation(); setPlanos((a) => a.filter((x) => x.id !== p.id)) }}>×</button>}
+                    </div>
+                    <div className="hf-shot-img">{miniPlano(p)}
                 {(() => {
                   // So os takes do modo atual (fotos no Image, clipes no Video); clicar escolhe qual fica no plano.
                   const lista = (p.takes ?? []).map((id) => tarefa(id)).filter((x): x is Tarefa => !!x)
@@ -379,18 +390,12 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
                     </div>
                   )
                 })()}
-              </div>
-              <div className="hf-plano-campos">
-                <div className="hf-linha-controles">
-                  <b>Shot {i + 1}</b>
-                  <button type="button" className="hf-enq" data-aberto={enqAberto === p.id}
-                    onClick={() => setEnqAberto((a) => (a === p.id ? null : p.id))}>
-                    <img src={foto('enquadramento', p.enquadramento)} alt="" />
-                    <span>{rot(ENQUADRAMENTOS, p.enquadramento)}</span><i>▾</i>
-                  </button>
-                  {planos.length > 1 && <button type="button" className="hf-botao-sec hf-x" aria-label={`Remove shot ${i + 1}`} title={`Remove shot ${i + 1}`}
-                    onClick={() => setPlanos((a) => a.filter((x) => x.id !== p.id))}>×</button>}
-                </div>
+                    </div>
+                    <button type="button" className="hf-enq" data-aberto={enqAberto === p.id}
+                      onClick={(e) => { e.stopPropagation(); setEnqAberto((a) => (a === p.id ? null : p.id)) }}>
+                      <img src={foto('enquadramento', p.enquadramento)} alt="" />
+                      <span>{rot(ENQUADRAMENTOS, p.enquadramento)}</span><i>▾</i>
+                    </button>
                 {enqAberto === p.id && (
                   <div className="hf-painel-op hf-painel-enq">
                     {ENQUADRAMENTOS.map((o) => <Cartao key={o.id} grupo="enquadramento" o={o} ativo={p.enquadramento === o.id}
@@ -424,26 +429,70 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
                       </select></label>
                   </div>
                 )}
-                {/* A acao do plano e o botao na mesma linha: o botao fica a direita da caixa. */}
-                <div className="hf-plano-acao">
-                  <input className="hf-campo" value={p.acao} onChange={(e) => mudarPlano(p.id, { acao: e.target.value })}
-                    placeholder="What happens in this shot (optional): he lights a cigarette…" />
-                  <button type="button" className="hf-gerar hf-shoot-plano" disabled={!cena.trim() || !!trabalhando || !!naoInstalado}
-                    onClick={async () => { setErro(null); try { await gerarPlano(p, !!t) } catch (e) { setErro(mensagem(e)) } }}>
-                    {t ? '↻ Reshoot' : '✦ Shoot this one'}
-                  </button>
-                </div>
-              </div>
+                    <input className="hf-campo" value={p.acao} onChange={(e) => mudarPlano(p.id, { acao: e.target.value })}
+                      onClick={(e) => e.stopPropagation()} placeholder="What happens in this shot (optional)…" />
+                    <button type="button" className="hf-gerar hf-shoot-plano" disabled={!cena.trim() || !!trabalhando || !!naoInstalado}
+                      onClick={async (e) => { e.stopPropagation(); setErro(null); setPlanoSel(p.id); try { await gerarPlano(p, !!t) } catch (x) { setErro(mensagem(x)) } }}>
+                      {t ? '↻ Reshoot' : '✦ Shoot this one'}
+                    </button>
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
-        {/* Teto de 8 planos: o botao da lugar a uma nota (antes sumia sem dizer por que). */}
-        {planos.length < 8 ? (
-          <button type="button" className="hf-botao-sec hf-mais-plano"
-            onClick={() => setPlanos((a) => [...a, { id: proximoPlano++, enquadramento: 'medio', acao: '', movimento: 'estatica' }])}>+ Add shot</button>
-        ) : <p className="hf-dica">Up to 8 shots per scene. Remove one to add another.</p>}
+          </div>
+        </section>
 
+        <aside className="hf-img-col hf-cin-dir hf-cinema" aria-label="Look">
+        <div className="hf-direcao">
+          <Linha rotulo="Camera" miniatura={<IconeCamera grupo="camera" id={d.camera} />} valor={camResumo}
+            aberto={aberto === 'camera'} aoAbrir={() => abrir('camera')} />
+          {aberto === 'camera' && (
+            <Popup titulo="Camera" aoFechar={() => setAberto(null)}>
+            <div className="hf-painel-op hf-painel-camera">
+              {([['Body', CAMERAS, 'camera'], ['Lens', LENTES, 'lente'], ['Focal length', FOCAIS, 'focal'], ['Aperture', ABERTURAS, 'abertura']] as const).map(([r, l, c]) => (
+                <div key={c}>
+                  <span className="hf-grupo-rotulo">{r}</span>
+                  {l.map((o) => (
+                    <button key={o.id} type="button" className="hf-cartao-op hf-cartao-icone" data-ativo={d[c] === o.id} aria-pressed={d[c] === o.id}
+                      onClick={() => mudar(c)(o.id)} title={o.texto}>
+                      <IconeCamera grupo={c} id={o.id} /><b>{o.rotulo}</b>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            </Popup>
+          )}
+          {(['luz', 'filme', 'genero', 'grade'] as const).map((g) => (
+            <div key={g}>
+              <Linha rotulo={painel[g].rotulo} miniatura={mini(g, d[painel[g].campo])}
+                valor={rot(painel[g].lista, d[painel[g].campo])} aberto={aberto === g} aoAbrir={() => abrir(g)} />
+              {aberto === g && (
+                <Popup titulo={painel[g].rotulo} aoFechar={() => setAberto(null)}>
+                <div className="hf-painel-op">
+                  {painel[g].lista.map((o) => <Cartao key={o.id} grupo={g} o={o} ativo={d[painel[g].campo] === o.id}
+                    aoEscolher={() => { mudar(painel[g].campo)(o.id); setAberto(null) }} />)}
+                </div>
+                </Popup>
+              )}
+            </div>
+          ))}
+        </div>
+        </aside>
+
+      <div className="hf-cin-rodape hf-cinema">
         <div className="hf-cinema-rodape">
+          <div className="hf-cin-modelo">
+            {video ? (
+              <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorVid} onChange={(e) => escolherVid(e.target.value)} aria-label="Video model">
+                <GruposAbertos itens={[{ id: 'ltx', rotulo: 'LTX 2.5' }, { id: 'minimax', rotulo: 'MiniMax H3' }]} api={geradores} />
+              </select></label>
+            ) : (
+              <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorImg} onChange={(e) => escolherImg(e.target.value)} aria-label="Image model">
+                <GruposAbertos itens={modelos.map((m) => ({ id: m.id, rotulo: m.rotulo, nuvem: m.nuvem }))} api={apiModelos} />
+              </select></label>
+            )}
+          </div>
           <Controle icone="▭" rotulo="Aspect" valor={escolherDe(proporcoes, proporcao)} aoMudar={setProporcao}
             opcoes={proporcoes.map((x) => ({ id: x, rotulo: x }))} />
           {video ? <>
@@ -466,13 +515,14 @@ export default function AbaCinema({ modelos: todos, apiModelos = [], apiGeradore
             <Controle icone="▦" rotulo="Takes per shot" valor={String(lote)} aoMudar={(v) => setLote(Number(v))}
               opcoes={[1, 2, 4].map((n) => ({ id: String(n), rotulo: `${n}` }))} />
           </>}
-          <BotaoGerar rotulo={trabalhando || `Shoot ${planos.length} ${video ? 'clip' : 'still'}${planos.length === 1 ? '' : 's'} ✦`}
+          <BotaoGerar rotulo={trabalhando || `✦ Generate shots (${planos.length})`}
             est={custoTotal} desligado={!!naoInstalado || !cena.trim() || !!trabalhando} aoClicar={gerarTodos} />
         </div>
         {local && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos={!video}
           nota="Applies to every shot in the list, so light and cast stay the same." />}
         {naoInstalado && <AvisoInstalar rotulo={naoInstalado} />}
         {erro && <p className="hf-erro">{erro}</p>}
+      </div>
       </div>
     </div>
   )

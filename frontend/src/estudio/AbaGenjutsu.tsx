@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { CartaoModelo, LinhaOnde, MotorCtx, useEscolha, useInstalado } from './motor'
-import { api, referenciaDaGaleria, urlEntrada, type Referencia } from '../api'
-import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, arquivos, mensagem, useCusto, useTarefas, type Estimativa, Galeria, parteDoHash, useLembrado, textoDoDetalhe, MAX_PROMPT } from './comum'
+import { api, referenciaDaGaleria, urlEntrada, urlImagem, type Referencia } from '../api'
+import { ThenNow } from './Visualizador'
+import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, arquivos, mensagem, useCusto, useTarefas, type Estimativa, Galeria, parteDoHash, useLembrado, textoDoDetalhe, MAX_PROMPT, TituloPagina } from './comum'
 
 // Genjutsu: recast a video with a new cast, place or style while its motion,
 // camera and timing stay. Models (backend genjutsu.py):
@@ -33,6 +34,10 @@ const MODELOS: Modelo[] = [
 ]
 
 // Etiquetas dos cartoes: o essencial de cada modelo num relance.
+// Foto de cada cartao de modelo (geradas para o app, em public/studios/cartoes).
+const FOTOS: Record<string, string> = { recast: 'gj_recast', wan_animate2: 'gj_wan_animate', wan22_replace: 'gj_wan_replace',
+  h3_swap: 'gj_h3_swap', higgsfield: 'gj_higgsfield', kling_omni: 'gj_kling', aleph2: 'gj_runway' }
+
 const ETIQUETAS: Record<string, string[]> = {
   recast: ['New cast + place', 'Up to 14 s'],
   wan_animate2: ['Photo performs the video', '~5 s', 'Cloud'],
@@ -79,6 +84,7 @@ export default function AbaGenjutsu({ apiLiberado }: { apiLiberado: boolean }) {
   const cartao = (m: Modelo) => (
     <CartaoModelo key={m.id} ativo={modelo === m.id} aoEscolher={() => escolherModelo(m)} title={m.dica}
       rodape={m.aberto && <LinhaOnde escolher={escolher} id={m.id} cartaoAtivo={modelo === m.id} local={m.id !== 'wan_animate2'} nuvem faltaLocal={!instalado(m.id)} />}>
+      {FOTOS[m.id] && <img className="hf-gj-foto" src={`/studios/cartoes/${FOTOS[m.id]}.webp`} alt="" loading="lazy" />}
       <b>{m.rotulo}</b>
       <span className="hf-mu-tags">
         <i data-onde={m.aberto ? 'local' : 'falta'}>{m.aberto ? 'Open weights' : 'API'}</i>
@@ -152,14 +158,13 @@ export default function AbaGenjutsu({ apiLiberado }: { apiLiberado: boolean }) {
   }
 
   const minhas = tarefas.filter((t) => t.modelo === 'genjutsu' || meus.includes(t.id))
+  // O ultimo video pronto desta sessao vai para o comparador Original | Result.
+  const feita = minhas.find((t) => t.estado === 'pronto' && arquivos(t).some((a) => /\.(mp4|webm|mov)$/i.test(a.nome)))
+  const resultado = feita ? arquivos(feita).find((a) => /\.(mp4|webm|mov)$/i.test(a.nome)) : undefined
 
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">GENJUTSU · {cfg.rotulo.toUpperCase()}</span>
-        <h1>Recast <em>any video</em></h1>
-        <p className="hf-dica">Same motion, camera and timing. New cast, place or style.</p>
-      </div>
+    <div className="hf-aba hf-img hf-gj">
+      <TituloPagina antes="Recast" destaque="any video" sub="Same motion, camera and timing. New cast, place or style." />
 
       <div className="hf-mu-modelos hf-gj-modelos">{MODELOS.filter((m) => m.aberto).map(cartao)}</div>
       {apiLiberado && <>
@@ -167,11 +172,10 @@ export default function AbaGenjutsu({ apiLiberado }: { apiLiberado: boolean }) {
         <div className="hf-mu-modelos hf-gj-modelos">{MODELOS.filter((m) => !m.aberto).map(cartao)}</div>
       </>}
 
-      <div className="hf-barra-prompt hf-ls">
-        <p className="hf-dica hf-gj-dica">{cfg.dica}</p>
+      <div className="hf-barra-prompt hf-ls hf-gj-passos">
         <div className="hf-ls-passos">
           <section className="hf-ls-cartao" data-pronto={!!video}>
-            <header><b>1</b> Video</header>
+            <header><b>1</b> Video <small>{cfg.dica}</small></header>
             <label className="hf-slot hf-gj-video" data-cheio={!!video}>
               {video ? <video src={urlEntrada(video.nome)} muted loop autoPlay playsInline />
                 : <span>{enviando ? 'Uploading…' : '+ Your video'}<small>The motion, camera and timing come from here</small></span>}
@@ -222,24 +226,31 @@ export default function AbaGenjutsu({ apiLiberado }: { apiLiberado: boolean }) {
               <Chips rotulo="Speed" opcoes={[{ id: 'n', rotulo: 'Quality · 20 steps' }, { id: 't', rotulo: 'Turbo · 8 steps' }]}
                 valor={turbo ? 't' : 'n'} aoMudar={(v) => setTurbo(v === 't')} />
             </>}
+            <div className="hf-gj-gerar">
+              {etapa && <span className="hf-dica">{etapa}</span>}
+              {cfg.aberto && !naNuvem && !instalado(modelo) && (
+                <span className="hf-erro">{cfg.rotulo} is not installed on this computer. Install it in Config Models, or choose Cloud on its card.</span>
+              )}
+              <BotaoGerar rotulo="Generate →" est={custo} desligado={!pronto} aoClicar={gerar} />
+            </div>
           </section>
-        </div>
-
-        <div className="hf-linha-controles">
-          {etapa && <span className="hf-dica">{etapa}</span>}
-          {cfg.aberto && !naNuvem && !instalado(modelo) && (
-            <span className="hf-erro">{cfg.rotulo} is not installed on this computer. Install it in Config Models, or choose Cloud on its card.</span>
-          )}
-          <span className="hf-espaco" />
-          <BotaoGerar est={custo} desligado={!pronto} aoClicar={gerar} />
         </div>
         {erro && <p className="hf-erro">{erro}</p>}
       </div>
 
+      {video && resultado && (
+        <section className="hf-gj-comparar" aria-label="Original and result">
+          <ThenNow antes={urlEntrada(video.nome)} depois={urlImagem(resultado)} modo="cortina" rotulos={['Original', 'Result']} />
+        </section>
+      )}
+
+      <section className="hf-img-recentes hf-lsn-recentes" aria-label="Recent recasts">
+      <span className="hf-img-titulo">Recent recasts</span>
       <Galeria tipo="video">
         {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
         {minhas.length === 0 && <p className="hf-vazio">Your recast videos will appear here.</p>}
       </Galeria>
+      </section>
     </div>
   )
 }

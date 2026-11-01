@@ -1508,6 +1508,9 @@ def gerar_api_generico(ficha, prompt, seed, proporcao, nivel, referencias=None, 
     ent[ficha["prompt"]] = prompt
     if ficha.get("seed"):
         ent[ficha["seed"]] = seed % 2147483647
+    # Um nivel que o modelo nao tem (2K no Wan 2.5, que vai ate 1440 px) cai no primeiro que ele tem.
+    if ficha.get("resolucoes") and nivel not in ficha["resolucoes"]:
+        nivel = ficha["resolucoes"][0]
     tipo, *args = ficha["formato"]
     if tipo == "ar":
         ent[args[0]] = _mais_proxima(args[1], proporcao)
@@ -1517,6 +1520,13 @@ def gerar_api_generico(ficha, prompt, seed, proporcao, nivel, referencias=None, 
         r = _razao(proporcao) or 1.0
         lado = {"2K": 2048, "4K": 2048}.get(nivel, 1024)
         w, h = (lado, lado / r) if r >= 1 else (lado * r, lado)
+        # Limites do no (o Wan 2.5 pede cada lado entre 768 e 1440): sobe o lado menor e corta o maior.
+        if ficha.get("lados"):
+            minimo, maximo = ficha["lados"]
+            f = max(1.0, minimo / min(w, h))
+            w, h = w * f, h * f
+            f = min(1.0, maximo / max(w, h))
+            w, h = max(minimo, w * f), max(minimo, h * f)
         ent[args[0]], ent[args[1]] = int(round(w / 16) * 16), int(round(h / 16) * 16)
     campo_nivel = ficha.get("nivel", ("", []))[0]
     if campo_nivel:
@@ -2770,7 +2780,8 @@ def gerar_video_wan3(prompt, seed, modo="imagem", variante="wan3.0-video",
         # O proprio servico enriquece o prompt. Deixado ligado por padrao,
         # como no no, mas exposto para quem escreveu a frase exata.
         "model.prompt_extend": bool(melhorar_prompt),
-        "seed": seed,
+        # O no da Comfy recusa seed acima de 2^31-1 (como os outros nos de parceiro de video).
+        "seed": seed % 2147483647,
         # Marca d'agua desligada: e uma peca do usuario, nao uma demonstracao.
         "watermark": False,
     }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReusarPrompt } from './Visualizador'
 import { AvisoInstalar, GruposAbertos, useEscolha, useValor, useFaltaInstalar } from './motor'
-import { api, type GeradorVideo, type Referencia } from '../api'
-import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, Galeria, parteDoHash, useLembrado, quadroChave, passoChave, MAX_PROMPT , AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes } from './comum'
+import { api, urlImagem, type GeradorVideo, type Referencia } from '../api'
+import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, arquivos, parteDoHash, useLembrado, quadroChave, passoChave, MAX_PROMPT , AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes, TituloPagina, Midia, EVENTO_REMOVIDO } from './comum'
 
 // Video tab: LTX 2.5 or the open-weight MiniMax H3, plus the API generators.
 // "References" puts the people and objects of your images into the shot:
@@ -38,6 +38,13 @@ const LEVES: Record<string, { rotulo: string; modos: Modo[]; resolucoes: string[
 
 type Chave = { id: number; img: Referencia | null; seg: number }
 let proximaChave = 3
+
+/** 1280x720 -> "16:9" (o selo do player). */
+function proporcaoDe([w, h]: [number, number]) {
+  const r = w / h
+  return [['16:9', 16 / 9], ['9:16', 9 / 16], ['1:1', 1], ['4:3', 4 / 3], ['3:4', 3 / 4], ['21:9', 21 / 9]]
+    .reduce((m, o) => (Math.abs((o[1] as number) - r) < Math.abs((m[1] as number) - r) ? o : m))[0] as string
+}
 
 export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem = false, pronto = true }: {
   apiGeradores?: GeradorVideo[]; apiOcultos?: GeradorVideo[]; naNuvem?: boolean
@@ -138,8 +145,21 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
   })
 
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_VAZIOS)
+  const [selecionado, setSelecionado] = useState<{ nome: string; subpasta: string } | null>(null)
+  const [tamanhoVideo, setTamanhoVideo] = useState<[number, number] | null>(null)
+  const [salvos, setSalvos] = useState<{ nome: string; subpasta: string }[]>([])
+  useEffect(() => {
+    const tirar = (e: Event) => { const d = (e as CustomEvent<{ nome: string; subpasta: string }>).detail
+      setSalvos((l) => l.filter((a) => !(a.nome === d.nome && a.subpasta === d.subpasta))); setSelecionado(null) }
+    window.addEventListener(EVENTO_REMOVIDO, tirar)
+    return () => window.removeEventListener(EVENTO_REMOVIDO, tirar)
+  }, [])
+  useEffect(() => {
+    api.galeria(400).then((itens) => setSalvos(itens.filter((i) => !!i.duracao_video && /\.(mp4|webm|mov)$/i.test(i.arquivo))
+      .slice(0, 30).map((i) => ({ nome: i.arquivo, subpasta: i.subpasta })))).catch(() => {})
+  }, [])
   const gerar = async () => {
-    setErro(null)
+    setErro(null); setSelecionado(null)  // o video novo vai para o player quando sair
     try {
       await api.gerar({
         modelo: 'video', modelo_video: motorPedido, turbo, modo_video: modoOk, prompt, proporcao: '1:1',
@@ -160,15 +180,32 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
 
   const minhas = tarefas.filter((t) => t.modelo === 'video')
 
-  return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">VIDEO · OPEN WEIGHTS AND API MODELS</span>
-        <h1>Video with sound, <em>from a line or a frame</em></h1>
-      </div>
+  // Layout de 31/10/2026: o video grande a esquerda (o ultimo gerado, ou o escolhido na
+  // faixa), o painel de criacao a direita e os videos recentes numa faixa embaixo.
+  const daSessao = minhas.flatMap((t) => (t.estado === 'pronto' ? arquivos(t) : []))
+  const recentes = [...daSessao, ...salvos.filter((a) => !daSessao.some((b) => b.nome === a.nome && b.subpasta === a.subpasta))]
+  const emCurso = minhas.filter((t) => t.estado !== 'pronto' && t.estado !== 'erro')
+  const palco = (selecionado && recentes.find((a) => a.nome === selecionado.nome && a.subpasta === selecionado.subpasta)) || recentes[0]
+  const faixa = useRef<HTMLDivElement>(null)
 
-      <div className="hf-barra-prompt">
-        <div className="hf-linha-controles">
+  return (
+    <div className="hf-aba hf-img hf-vid">
+      <TituloPagina antes="Make a" destaque="video" sub="From text, an image, first and last frames, references or keyframes." />
+      <div className="hf-vid-grade">
+        <section className="hf-vid-palco">
+          {palco ? (<>
+            <div className="hf-vid-selo">{tamanhoVideo ? `${proporcaoDe(tamanhoVideo)}  ${tamanhoVideo[0]}×${tamanhoVideo[1]}` : ''}</div>
+            {/* O mesmo Midia das imagens: Open, Download, Use, Remove... no canto do video. */}
+            <Midia key={palco.subpasta + palco.nome} nome={palco.nome} subpasta={palco.subpasta} />
+            <video src={urlImagem(palco)} preload="metadata" hidden
+              onLoadedMetadata={(e) => setTamanhoVideo([e.currentTarget.videoWidth, e.currentTarget.videoHeight])} />
+          </>) : emCurso[0] ? <CartaoTarefa t={emCurso[0]} />
+            : <div className="hf-img-vazio"><b>Your video appears here</b><span>Describe the shot on the right, then press Generate.</span></div>}
+          {emCurso[0] && palco && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
+        </section>
+
+        <aside className="hf-img-col hf-img-dir hf-vid-dir" aria-label="Create video">
+          <div className="hf-img-controles">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">
             <GruposAbertos itens={[{ id: 'ltx', rotulo: 'LTX 2.5' }, { id: 'minimax', rotulo: 'MiniMax H3' },
               ...Object.entries(LEVES).map(([id, l]) => ({ id, rotulo: l.rotulo, soLocal: !l.nuvem }))]} api={apiGeradores} />
@@ -177,7 +214,7 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
             <Chips rotulo="Speed" opcoes={[{ id: 1, rotulo: 'Turbo · 8 steps' }, { id: 0, rotulo: 'Quality · 40 steps' }]}
               valor={turbo ? 1 : 0} aoMudar={(v) => setTurbo(v === 1)} />
           )}
-        </div>
+          </div>
         {apiOculta && <p className="hf-erro">{apiOculta.rotulo.replace(/ \((API|nuvem)\)$/, '')} is a paid API model. To use it, turn on "Paid API models" in Comfy Cloud API (the balance at the top right). Showing LTX 2.5 instead.</p>}
         {indisponivel && soLocal && <p className="hf-erro" role="alert">{`${LEVES[escolhido].rotulo} runs only on your GPU: pick it under "Local" in the model menu to switch. Showing LTX 2.5 on Comfy Cloud instead.`}</p>}
         {indisponivel && !soLocal && <p className="hf-erro" role="alert">{`"${escolhido}" is not available here: an unknown name, or a paid API model (those need a Comfy Cloud key and "Paid API models" turned on in Config Models → Comfy Cloud API). Showing LTX 2.5 instead.`}</p>}
@@ -238,11 +275,14 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
             {modoOk === 'primeiro_ultimo' && <SlotImagem rotulo="Last frame" valor={fim} aoMudar={setFim} />}
           </div>
         )}
+        <span className="hf-vid-rotulo">Prompt</span>
         <textarea aria-label="Prompt" maxLength={MAX_PROMPT} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2}
           placeholder={ehRef ? 'e.g. @image1 and @image2 dance together on a rooftop at sunset' : 'Describe the shot: subject, action, camera, sound…'} />
-        <div className="hf-linha-controles">
+          <div className="hf-vid-par">
           <Chips rotulo="Aspect ratio" opcoes={proporcoes.map((p) => ({ id: p, rotulo: p }))} valor={proporcaoOk} aoMudar={setProporcao} />
           <Chips rotulo="Resolution" opcoes={resolucoes.map((r) => ({ id: r, rotulo: r }))} valor={resolucaoOk} aoMudar={setResolucao} />
+          </div>
+          <div className="hf-vid-par hf-vid-par-duracao">
           <div className="hf-campo"><span>Length</span>
             <label className="hf-duracao">
               {duracaoOk}s
@@ -252,20 +292,38 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
           <div className="hf-campo" style={(gApi as { sem_audio?: boolean } | undefined)?.sem_audio ? { display: 'none' } : undefined}><span>Sound</span>
             <label className="hf-toggle"><input type="checkbox" checked={audio} onChange={(e) => setAudio(e.target.checked)} /> Audio</label>
           </div>
-          <BotaoGerar est={custo} desligado={naoInstalado || !prompt.trim() || faltaImagem || chavesRepetidas} aoClicar={gerar} />
-        </div>
-        {!gApi && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos={false} />}
+          </div>
         {avisoModo && <p className="hf-dica" role="note">{avisoModo}</p>}
         {chavesRepetidas && <p className="hf-erro">Two keyframes are at the same second: move one of them.</p>}
         {naoInstalado && <AvisoInstalar rotulo={rotuloMotor} />}
         {!naoInstalado && faltaQual && <p className="hf-dica" role="note">{faltaQual}</p>}
         {erro && <p className="hf-erro">{erro}</p>}
+          {!gApi && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos={false} />}
+          <BotaoGerar rotulo="✦ Generate" est={custo} desligado={naoInstalado || !prompt.trim() || faltaImagem || chavesRepetidas} aoClicar={gerar} />
+        </aside>
       </div>
 
-      <Galeria tipo="video">
-        {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
-        {minhas.length === 0 && <p className="hf-vazio">Your videos will appear here.</p>}
-      </Galeria>
+      <section className="hf-img-recentes" aria-label="Recent videos">
+        <div className="hf-vid-recentes-topo">
+          <span className="hf-img-titulo">Recent videos</span>
+          <div>
+            <button type="button" className="hf-vid-seta" aria-label="Scroll left" onClick={() => faixa.current?.scrollBy({ left: -600, behavior: 'smooth' })}>‹</button>
+            <button type="button" className="hf-vid-seta" aria-label="Scroll right" onClick={() => faixa.current?.scrollBy({ left: 600, behavior: 'smooth' })}>›</button>
+          </div>
+        </div>
+        <div className="hf-img-faixa" ref={faixa}>
+          {emCurso.map((t) => <div key={t.id} className="hf-img-faixa-item hf-img-faixa-curso"><CartaoTarefa t={t} /></div>)}
+          {recentes.map((a) => (
+            <button key={a.subpasta + a.nome} type="button" className="hf-img-faixa-item hf-vid-item" data-ativo={palco?.nome === a.nome}
+              onClick={() => setSelecionado(a)} title="Play it in the big player">
+              <video src={urlImagem(a) + '#t=0.5'} muted preload="metadata" playsInline
+                onLoadedMetadata={(e) => { const d = e.currentTarget.duration; const el = e.currentTarget.nextElementSibling; if (el && isFinite(d)) el.textContent = `00:${String(Math.round(d)).padStart(2, '0')}` }} />
+              <span className="hf-vid-dur" />
+            </button>
+          ))}
+          {!recentes.length && !emCurso.length && <p className="hf-vazio">Your videos will appear here.</p>}
+        </div>
+      </section>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { GruposAbertos, useEscolha } from './motor'
-import { BotaoGerar, CartaoTarefa, Chips, mensagem, teclasRadio, useCusto, useTarefas, Galeria, useLembrado, textoDoDetalhe } from './comum'
+import { BotaoGerar, CartaoTarefa, mensagem, teclasRadio, useCusto, useTarefas, Galeria, useLembrado, textoDoDetalhe, TituloPagina } from './comum'
 
 // Voice: text to speech with open weights. Locally it is OmniVoice (voz.grafo);
 // on Comfy Cloud, where OmniVoice is missing, Qwen3-TTS (voz.grafo_nuvem),
@@ -50,6 +50,7 @@ export default function AbaVoz({ naNuvem }: { naNuvem: boolean }) {
   const [idioma, setIdioma] = useState('English')
   const [falante, setFalante] = useState('Ryan')
   const [vozLocal, setVozLocal] = useState('')
+  const [busca, setBusca] = useState('')
   const [instrucao, setInstrucao] = useLembrado('voice.instrucao', '')
   // Narrate na nuvem: "como dizer" (excited, whispering...). Era o mesmo campo da
   // descricao do Design a voice, que ia escondida no pedido do Narrate.
@@ -106,12 +107,8 @@ export default function AbaVoz({ naNuvem }: { naNuvem: boolean }) {
   const minhas = tarefas.filter((t) => t.modelo === 'voz')
 
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">VOICE · {naNuvem ? 'QWEN3-TTS' : 'OMNIVOICE'} · OPEN WEIGHTS</span>
-        <h1>Give it a <em>voice</em></h1>
-        <p className="hf-dica">Narration, a voice made from a description, or a clone of a recording. Use it in Lip Sync next.</p>
-      </div>
+    <div className="hf-aba hf-img hf-vzn">
+      <TituloPagina antes="Give it a" destaque="voice" sub="Narration, a voice made from a description, or a clone of a recording. Use it in Lip Sync next." />
 
       <div className="hf-vz-modos" role="radiogroup" aria-label="Mode" onKeyDown={teclasRadio}>
         {MODOS.map((m) => (
@@ -125,16 +122,33 @@ export default function AbaVoz({ naNuvem }: { naNuvem: boolean }) {
       <div className="hf-barra-prompt">
         <div className="hf-vz-corpo">
           <section className="hf-vz-coluna">
-            <span className="hf-grupo-rotulo">The voice</span>
+            <div className="hf-vzn-cabeca">
+              <span className="hf-grupo-rotulo">The voice</span>
+              {modo === 'narrar' && <label className="hf-vfx-busca hf-vzn-busca"><span aria-hidden>⌕</span>
+                <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Search voices…" aria-label="Search voices" /></label>}
+            </div>
             {modo === 'narrar' && (naNuvem ? (
               <>
-                <Chips rotulo="Speaker" opcoes={FALANTES.map((f) => ({ id: f, rotulo: f.replace('_', ' ') }))} valor={falante} aoMudar={setFalante} />
+                <div className="hf-vzn-lista" role="radiogroup" aria-label="Speaker">
+                  {FALANTES.filter((f) => f.toLowerCase().includes(busca.trim().toLowerCase())).map((f) => (
+                    <button key={f} type="button" role="radio" aria-checked={falante === f} data-ativo={falante === f} onClick={() => setFalante(f)}>
+                      <i aria-hidden>{f[0]}</i><b>{f.replace('_', ' ')}</b>
+                    </button>
+                  ))}
+                </div>
                 <input className="hf-campo" value={comoDizer} onChange={(e) => setComoDizer(e.target.value)} aria-label="How to say it"
                   placeholder="Optional: how to say it, e.g. excited, whispering, sad" />
               </>
             ) : (
               <>
-                <Chips rotulo="Voice" opcoes={VOZES_LOCAIS.map((v) => ({ id: v.id, rotulo: v.rotulo }))} valor={vozLocal} aoMudar={setVozLocal} />
+                <div className="hf-vzn-lista" role="radiogroup" aria-label="Voice">
+                  {VOZES_LOCAIS.filter((v) => `${v.rotulo} ${v.tags}`.toLowerCase().includes(busca.trim().toLowerCase())).map((v) => (
+                    <button key={v.id} type="button" role="radio" aria-checked={vozLocal === v.id} data-ativo={vozLocal === v.id} onClick={() => setVozLocal(v.id)}>
+                      <i aria-hidden>{v.rotulo[0]}</i><b>{v.rotulo}</b>
+                      {v.tags && <span>{v.tags.split(', ').map((t) => <small key={t}>{t}</small>)}</span>}
+                    </button>
+                  ))}
+                </div>
                 <p className="hf-dica">{vozLocal ? 'The same voice in any language.' : 'Auto: OmniVoice picks a natural voice for the language.'} Want your own? Use <b>Design a voice</b> or <b>Clone a voice</b>.</p>
               </>
             ))}
@@ -176,9 +190,9 @@ export default function AbaVoz({ naNuvem }: { naNuvem: boolean }) {
               {texto.length >= MAX_TEXTO && <b className="hf-vz-longo"> · limit reached</b>}
             </span>
           </section>
-        </div>
 
-        <div className="hf-linha-controles">
+          <aside className="hf-vz-coluna hf-vzn-dir" aria-label="Settings">
+            <span className="hf-grupo-rotulo">Settings</span>
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={naNuvem ? 'nuvem:qwen3tts' : 'local:omnivoice'} onChange={(e) => escolher(e.target.value)} aria-label="Model">
             <GruposAbertos itens={[{ id: 'omnivoice', rotulo: 'OmniVoice', soLocal: true, naoInstalado: !naNuvem && !!caps && !caps.disponivel, falta: 'nodes missing' },
               { id: 'qwen3tts', rotulo: 'Qwen3-TTS', soNuvem: true }]} />
@@ -186,18 +200,21 @@ export default function AbaVoz({ naNuvem }: { naNuvem: boolean }) {
           <label className="hf-campo"><span>Language</span><select className="hf-select" value={idioma} onChange={(e) => setIdioma(e.target.value)} aria-label="Language">
             {IDIOMAS.map((i) => <option key={i}>{i}</option>)}
           </select></label>
-          <span className="hf-espaco" />
-          <BotaoGerar est={custo} desligado={!pronto} aoClicar={gerar} />
+            <BotaoGerar rotulo="Generate ✦" est={custo} desligado={!pronto} aoClicar={gerar} />
+          </aside>
         </div>
         {falta && <p className="hf-dica" role="status">{falta}</p>}
         {semMotor && <p className="hf-erro" role="alert">{naNuvem ? 'Voice design is not available here.' : 'OmniVoice is not installed in your ComfyUI'}{caps?.motivo ? ` (${caps.motivo})` : ''}. Install the TTS Audio Suite nodes, or pick Qwen3-TTS (Comfy Cloud) in the menu.</p>}
         {erro && <p className="hf-erro">{erro}</p>}
       </div>
 
+      <section className="hf-img-recentes hf-lsn-recentes" aria-label="Recent voices">
+      <span className="hf-img-titulo">Recent voices</span>
       <Galeria tipo="audio">
         {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
         {minhas.length === 0 && <p className="hf-vazio">Your voices will appear here.</p>}
       </Galeria>
+      </section>
     </div>
   )
 }

@@ -33,13 +33,25 @@ Notes: still in development and tested only on NVIDIA (RTX 5070 Ti, 16 GB). It n
 - **Follow depth** takes a depth video too: estimated from any footage, or a ready one such as Blender's depth pass.
 - **Video → Depth map** goes the other way: a stable depth map of any video, with optional 32-bit EXR frames for Blender or After Effects.
 
-### The studio
+### EasyComfee V2: every screen
 
-| LTX Studio | VFX Studio |
+A new layout for every tab: a fixed sidebar, a title line for each page, a large preview in the middle and the controls on the side.
+
+| Image | Edit |
 |---|---|
-| ![LTX Studio tab](docs/galeria/tela-ltx-v2.png) | ![VFX Studio tab](docs/galeria/tela-apps-v2.png) |
-| **Cinema Studio** | **Music** |
-| ![Cinema Studio tab](docs/galeria/tela-cinema-v3.png) | ![Music tab](docs/galeria/tela-music-v2.png) |
+| ![EasyComfee V2, Image tab](docs/galeria/v2-image.jpg) | ![EasyComfee V2, Edit tab](docs/galeria/v2-edit.jpg) |
+| **Video** | **VFX Studio** |
+| ![EasyComfee V2, Video tab](docs/galeria/v2-video.jpg) | ![EasyComfee V2, VFX Studio](docs/galeria/v2-vfx.jpg) |
+| **LTX Studio** | **MiniMax H3 Studio** |
+| ![EasyComfee V2, LTX Studio](docs/galeria/v2-ltx.jpg) | ![EasyComfee V2, MiniMax H3 Studio](docs/galeria/v2-h3.jpg) |
+| **Wan Studio** | **FLUX 3 Studio** |
+| ![EasyComfee V2, Wan Studio](docs/galeria/v2-wan.jpg) | ![EasyComfee V2, FLUX 3 Studio](docs/galeria/v2-flux3.jpg) |
+| **Cinema Studio** | **Lip Sync** |
+| ![EasyComfee V2, Cinema Studio](docs/galeria/v2-cinema.jpg) | ![EasyComfee V2, Lip Sync](docs/galeria/v2-lipsync.jpg) |
+| **Music** | **Voice** |
+| ![EasyComfee V2, Music](docs/galeria/v2-music.jpg) | ![EasyComfee V2, Voice](docs/galeria/v2-voice.jpg) |
+| **Genjutsu** | **Assets** |
+| ![EasyComfee V2, Genjutsu](docs/galeria/v2-genjutsu.jpg) | ![EasyComfee V2, Assets](docs/galeria/v2-assets.jpg) |
 
 ### Edit your photos
 

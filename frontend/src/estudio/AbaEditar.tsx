@@ -1,7 +1,9 @@
+import type React from 'react'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { MotorCtx, AvisoInstalar, useFaltaInstalar } from './motor'
 import { api, urlImagem, type Referencia } from '../api'
-import { pegarParaEditar, referenciaDe, arquivos, BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, Galeria, MAX_PROMPT } from './comum'
+import { pegarParaEditar, referenciaDe, arquivos, BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, MAX_PROMPT, TituloPagina } from './comum'
+import { ThenNow, abrirVisualizador } from './Visualizador'
 
 // Edit Studio: as ferramentas de edicao herdadas do Editor de Imagens. Cada cartao e
 // um modo que o backend ja monta (app.py montar(): reluz, luzref, angulo, anygles,
@@ -19,7 +21,7 @@ const FERRAMENTAS: Ferramenta[] = [
     imagens: [{ rotulo: 'Photo' }, { rotulo: 'Light from', opcional: true }], texto: 'opcional', pacote: 'Qwen Image Edit 2511',
     dica: 'Pick where the light comes from. The people and things in the photo stay the same.' },
   { id: 'luzref', grupo: 'Light', nome: 'Copy the light', frase: 'Take the light and mood of one photo and put it on another.',
-    imagens: [{ rotulo: 'Photo to change' }, { rotulo: 'Light from' }], texto: 'opcional', pacote: 'Qwen Image Edit 2511',
+    imagens: [{ rotulo: 'Photo' }, { rotulo: 'Light from' }], texto: 'opcional', pacote: 'Qwen Image Edit 2511',
     dica: 'Image 1 changes. Image 2 is only the light example: its content does not show up in the result.' },
   { id: 'angulo', grupo: 'Angle', nome: 'Change the angle', frase: 'See the subject from another side, same scene and outfit.',
     imagens: [{ rotulo: 'Photo' }], texto: 'opcional', pacote: 'Qwen Image Edit 2511',
@@ -31,7 +33,7 @@ const FERRAMENTAS: Ferramenta[] = [
     imagens: [{ rotulo: 'Scene' }, { rotulo: 'Head' }], texto: 'opcional', pacote: 'Krea 2',
     dica: 'First the scene to edit, then a photo where the new head is clearly visible.' },
   { id: 'personagem', grupo: 'People', nome: 'Character swap', frase: 'Replace the person and keep the exact pose, gaze and light.',
-    imagens: [{ rotulo: 'Scene & pose' }, { rotulo: 'Who enters' }, { rotulo: 'Exact face', opcional: true }], texto: 'opcional', pacote: 'FLUX 2 Klein 9B',
+    imagens: [{ rotulo: 'Pose' }, { rotulo: 'Person' }, { rotulo: 'Face', opcional: true }], texto: 'opcional', pacote: 'FLUX 2 Klein 9B',
     dica: 'Image 1 is the pose and stays fixed. Image 2 is who enters. Image 3 (optional) gives the exact face and outfit.' },
   { id: 'rosto', grupo: 'People', nome: 'Adjust the face', frase: 'Change the gaze, the smile and the head tilt. Nothing else moves.',
     imagens: [{ rotulo: 'Portrait' }],
@@ -43,7 +45,7 @@ const FERRAMENTAS: Ferramenta[] = [
     imagens: [{ rotulo: 'Photo' }], texto: 'obrigatorio', pacote: 'Qwen Image 2.1',
     dica: 'Write what to change ("the jacket", "the sky") and what it should become. Everything outside that area stays pixel for pixel.' },
   { id: 'controle', grupo: 'Tools', nome: 'Follow the structure', frase: 'A new picture that follows the edges, depth or pose of yours.',
-    imagens: [{ rotulo: 'Structure from' }], texto: 'obrigatorio', pacote: 'Z-Image Turbo',
+    imagens: [{ rotulo: 'Structure' }], texto: 'obrigatorio', pacote: 'Z-Image Turbo',
     dica: 'The image gives only the structure; the prompt says what to draw on it.' },
   { id: 'ampliar', grupo: 'Tools', nome: 'Upscale', frase: 'Bigger and sharper: 1.5x to 4x on your GPU, up to 16x with Magnific.',
     imagens: [{ rotulo: 'Photo' }], texto: 'opcional', pacote: 'Upscalers',
@@ -59,13 +61,6 @@ const MODELO_DO_PACOTE: Record<string, string> = {
   'Qwen Image Edit 2511': 'qwen_edit', 'Krea 2': 'krea', 'FLUX 3 Image Klein': 'flux3', 'FLUX 2 Klein 9B': 'klein', 'Z-Image Turbo': 'zimage',
 }
 
-const LADOS = [
-  { id: -90, rotulo: '← Left' }, { id: -45, rotulo: '↖ Front-left' }, { id: 0, rotulo: '↑ Front' },
-  { id: 45, rotulo: '↗ Front-right' }, { id: 90, rotulo: 'Right →' }, { id: 180, rotulo: '↓ Behind' },
-]
-const ALTURAS = [{ id: 0, rotulo: 'Low' }, { id: 25, rotulo: 'Eye level' }, { id: 60, rotulo: 'High' }]
-const CORES = [{ id: 'quente', rotulo: 'Warm' }, { id: 'neutra', rotulo: 'Neutral' }, { id: 'fria', rotulo: 'Cool' }]
-const FORCAS = [{ id: 0.6, rotulo: 'Soft' }, { id: 1.0, rotulo: 'Normal' }, { id: 1.4, rotulo: 'Strong' }]
 // Relight pelo Magnific (presets.RELUZ metodos.nuvem): descreve a luz OU copia de uma foto.
 const ESTILOS_LUZ = [
   { id: 'standard', rotulo: 'Standard' }, { id: 'darker_but_realistic', rotulo: 'Darker' }, { id: 'clean', rotulo: 'Clean' },
@@ -130,11 +125,43 @@ const OTIMIZACOES = [
 
 const CONTROLES = [{ id: 'contorno', rotulo: 'Edges' }, { id: 'profundidade', rotulo: 'Depth' }, { id: 'pose', rotulo: 'Pose' }, { id: 'linhas', rotulo: 'Lines' }]
 
+/** Direcao da luz num circulo, visto de frente: o ponto e de onde a luz vem (esquerda,
+ *  direita, alto, baixo). x vira o azimute (-90 a 90), y a elevacao (-60 a 75). */
+function LuzPad({ azimute, elevacao, aoMudar }: { azimute: number; elevacao: number; aoMudar: (az: number, el: number) => void }) {
+  const caixa = useRef<HTMLDivElement>(null)
+  const atras = Math.abs(azimute) > 90
+  const x = atras ? 0 : Math.max(-1, Math.min(1, azimute / 90)), y = -Math.max(-1, Math.min(1, elevacao / 75))
+  const mover = (e: React.PointerEvent) => {
+    const r = caixa.current!.getBoundingClientRect()
+    let nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = ((e.clientY - r.top) / r.height) * 2 - 1
+    const d = Math.hypot(nx, ny); if (d > 1) { nx /= d; ny /= d }
+    aoMudar(Math.round(nx * 90), Math.round(-ny * 75))
+  }
+  return (
+    <div className="hf-luz-pad-area">
+      <span data-lado="top">Top</span><span data-lado="left">Left</span><span data-lado="right">Right</span><span data-lado="bottom">Bottom</span>
+      <div ref={caixa} className="hf-luz-pad" role="slider" aria-label="Light direction" aria-valuetext={`${azimute} degrees across, ${elevacao} degrees up`}
+        tabIndex={0} onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); mover(e) }}
+        onPointerMove={(e) => { if (e.buttons) mover(e) }}
+        onKeyDown={(e) => {
+          const p = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, 10], ArrowDown: [0, -10] }[e.key]
+          if (p) { e.preventDefault(); aoMudar(Math.max(-90, Math.min(90, azimute + p[0])), Math.max(-75, Math.min(75, elevacao + p[1]))) }
+        }}>
+        <i className="hf-luz-ponto" style={{ left: `${50 + x * 50}%`, top: `${50 + y * 50}%`, opacity: atras ? 0.4 : 1 }} />
+      </div>
+    </div>
+  )
+}
+
 export default function AbaEditar() {
   const { naNuvem } = useContext(MotorCtx)
   const tarefas = useTarefas()
   const faltaInstalar = useFaltaInstalar()
-  const [ferramenta, setFerramenta] = useState<Ferramenta | null>(null)
+  // Abre na primeira ferramenta (Relight), como no layout: sempre ha controles a direita.
+  const [ferramenta, setFerramenta] = useState<Ferramenta | null>(FERRAMENTAS[0])
+  const [ultimoId, setUltimoId] = useState<string | null>(null)
+  const [verResultado, setVerResultado] = useState<{ nome: string; subpasta: string } | null>(null)
+  const [zoom, setZoom] = useState(100)
   const [imgs, setImgs] = useState<(Referencia | null)[]>([])
   const [texto, setTexto] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -143,6 +170,7 @@ export default function AbaEditar() {
   const [elevacao, setElevacao] = useState(25)
   const [temperatura, setTemperatura] = useState('neutra')
   const [intensidade, setIntensidade] = useState(1.0)
+  const [tempLuz, setTempLuz] = useState(0)   // -50 fria ... +50 quente (o modelo recebe fria/neutra/quente)
   const [metodoLuz, setMetodoLuz] = useState('direcional')   // direcional (Qwen, local) ou nuvem (Magnific)
   const [estiloLuz, setEstiloLuz] = useState('standard')
   const [mudarFundo, setMudarFundo] = useState(false)
@@ -190,7 +218,7 @@ export default function AbaEditar() {
     return () => window.removeEventListener('easycomfee:editar', pegar)
   }, [])
   const abrir = (f: Ferramenta) => {
-    setFerramenta(f); setErro(null); setPrevia(null)
+    setFerramenta(f); setErro(null); setPrevia(null); setUltimoId(null); setVerResultado(null); setZoom(100)
     setImgs(esperando && f.imagens.length ? [esperando] : [])
   }
   const f = ferramenta
@@ -246,7 +274,10 @@ export default function AbaEditar() {
   const gerar = async () => {
     if (!pedido) return
     setErro(null)
-    try { await api.gerar(pedido as Parameters<typeof api.gerar>[0]) } catch (e) { setErro(mensagem(e)) }
+    try {
+      const { id } = await api.gerar(pedido as Parameters<typeof api.gerar>[0])
+      setUltimoId(id); setVerResultado(null)  // o resultado novo vai para o antes e depois
+    } catch (e) { setErro(mensagem(e)) }
   }
 
   // A previa e sempre o boneco 3D do Krea: na pose da foto (rotacao medida) mais o giro.
@@ -309,43 +340,48 @@ export default function AbaEditar() {
   const minhas = tarefas.filter((t) => (ids.has(t.modelo) || t.modelo === 'qwen21edit' || doOrbit(t.prompt)) && !t.teste)
   const grupos = [...new Set(FERRAMENTAS.map((x) => x.grupo))]
 
+  // Layout de 31/10/2026: ferramentas a esquerda, a foto no centro (antes e depois com
+  // cortina, ou foto e previa no Orbit), os controles da ferramenta e o Apply a direita.
+  const resultadoTarefa = ultimoId ? minhas.find((t) => t.id === ultimoId && t.estado === 'pronto') : undefined
+  const depois = verResultado ?? (resultadoTarefa ? arquivos(resultadoTarefa)[0] : undefined)
+  const recentes = minhas.flatMap((t) => (t.estado === 'pronto' ? arquivos(t) : []))
+  const emCurso = minhas.filter((t) => t.estado !== 'pronto' && t.estado !== 'erro')
+
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">EDIT STUDIO · OPEN MODELS</span>
-        <h1>Edit your <em>photos</em></h1>
-        <p className="hf-dica">Relight, change the angle, swap a head or a character, make a character sheet. Pick a tool and drop a photo.</p>
-      </div>
-
-      {esperando && !f && (
-        <div className="hf-editar-esperando">
-          <img src={esperando.url} alt="" />
-          <span>Image ready. <b>Pick a tool below</b> and it goes in.</span>
-          <button type="button" className="hf-ajustes-limpar" onClick={() => setEsperando(null)}>Clear</button>
-        </div>
-      )}
-      {grupos.map((g) => (
-        <section key={g} className="hf-editar-grupo">
-          <span className="hf-editar-grupo-nome">{g}</span>
-          <div className="hf-apps">
-            {FERRAMENTAS.filter((x) => x.grupo === g).map((x) => (
-              <button key={x.id} className="hf-app hf-ferramenta" data-ativo={f?.id === x.id} aria-pressed={f?.id === x.id} onClick={() => abrir(x)}>
-                {/* Exemplo gerado com a propria ferramenta; sem arquivo, so o fundo da capa. */}
-                <img src={`/editar/${x.id}.webp`} alt="" loading="lazy"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }} />
-                <b>{x.nome}{x.api && <small> · API</small>}{naNuvem && !x.api && <small> · local GPU only</small>}</b>
-                <span>{x.frase}</span>
-              </button>
-            ))}
+    <div className="hf-aba hf-img hf-edt">
+      <TituloPagina antes="Edit your" destaque="photo" sub="Change the light or the angle, swap a head or a character, upscale or cut out." />
+      <div className="hf-edt-grade">
+        <aside className="hf-img-col hf-edt-esq" aria-label="Edit tools">
+          <div>
+            <h2 className="hf-edt-titulo">Edit tools</h2>
+            <p className="hf-dica">Change the light, angle, swap a head or a character, make a character sheet. Pick a tool and edit your photo.</p>
           </div>
-        </section>
-      ))}
+          {esperando && (
+            <div className="hf-editar-esperando">
+              <img src={esperando.url} alt="" />
+              <span>Image ready. <b>Pick a tool</b> and it goes in.</span>
+              <button type="button" className="hf-ajustes-limpar" onClick={() => setEsperando(null)}>Clear</button>
+            </div>
+          )}
+          {grupos.map((g) => (
+            <section key={g} className="hf-editar-grupo" data-grupo={g}>
+              <span className="hf-editar-grupo-nome">{g}</span>
+              <div className="hf-edt-cartoes">
+                {FERRAMENTAS.filter((x) => x.grupo === g).map((x) => (
+                  <button key={x.id} className="hf-app hf-ferramenta" data-ativo={f?.id === x.id} aria-pressed={f?.id === x.id} onClick={() => abrir(x)}>
+                    <img src={`/editar/${x.id}.gif?v=3`} alt="" loading="lazy"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }} />
+                    <b>{x.nome}{x.api && <small> · API</small>}</b>
+                    <span>{x.frase}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </aside>
 
-      {f && (
-        <div className="hf-barra-prompt" style={{ marginTop: 20 }}>
-          <span className="hf-passo">{f.nome}</span>
-          {f.id === 'anygles' ? (
-            // Orbit: a foto e a previa do corpo lado a lado, do mesmo tamanho, para comparar.
+        <section className="hf-edt-centro">
+          {f?.id === 'anygles' ? (
             <div className="hf-orbita-par">
               <div className="hf-orbita-caixa">
                 <span className="hf-orbita-caixa-nome">Your photo</span>
@@ -358,18 +394,49 @@ export default function AbaEditar() {
                 {previando && <span className="hf-orbita-selo">Updating…</span>}
               </div>
             </div>
-          ) : <div className="hf-slots">
+          ) : (
+            <div className="hf-edt-palco">
+              <div className="hf-edt-zoom" style={{ transform: `scale(${zoom / 100})` }}>
+                {imgs[0] && depois ? <ThenNow antes={imgs[0].url} depois={urlImagem(depois)} modo="cortina" rotulos={['Before', 'After']} />
+                  : depois ? <img src={urlImagem(depois)} alt="Result" />
+                  : imgs[0] ? <img src={imgs[0].url} alt="Your photo" />
+                  : <div className="hf-img-vazio"><b>{f ? 'Drop a photo to start' : 'Pick a tool'}</b><span>{f ? 'Use the box on the right, or drag one from a gallery.' : 'Choose an edit on the left.'}</span></div>}
+              </div>
+              {emCurso[0] && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
+            </div>
+          )}
+          {f?.id !== 'anygles' && (
+            <div className="hf-edt-barra" role="toolbar" aria-label="View">
+              <button type="button" onClick={() => setZoom((z) => Math.max(50, z - 25))} aria-label="Zoom out">−</button>
+              <span>{zoom}%</span>
+              <button type="button" onClick={() => setZoom((z) => Math.min(300, z + 25))} aria-label="Zoom in">+</button>
+              <button type="button" onClick={() => setZoom(100)} title="Fit">⤢</button>
+              {depois && <button type="button" onClick={() => abrirVisualizador(depois)} title="Open the result full screen">⛶</button>}
+            </div>
+          )}
+        </section>
+
+        <aside className="hf-img-col hf-img-dir hf-edt-dir" aria-label="Tool settings">
+          {f ? (<>
+            <div className="hf-edt-cabeca">
+              <img src={`/editar/${f.id}.webp`} alt="" />
+              <div><b>{f.nome}</b><span>{f.frase}</span></div>
+            </div>
+            {f.id !== 'anygles' && (
+              <div className="hf-campo"><span>{f.imagens.length > 1 ? 'Images' : 'Photo'}</span>
+                <div className="hf-slots">
             {f.imagens.map((s, i) => f.id === 'reluz' && i === 1 && !luzApi ? null : (
-              <SlotImagem key={`${f.id}-${i}`} rotulo={s.rotulo + (s.opcional ? ' (optional)' : '')} valor={imgs[i] ?? null}
+              <SlotImagem key={`${f.id}-${i}`} rotulo={s.rotulo + (s.opcional ? ' (opt.)' : '')} valor={imgs[i] ?? null}
                 aoMudar={(r) => setImgs((a) => { const n = [...a]; n[i] = r; return n })} />
             ))}
-          </div>}
+          </div>
+              </div>
+            )}
           <p className="hf-dica">{com3d ? 'Works best with the whole person in the photo, clearly separated from the background.'
             : comFrase ? 'Any framing works. The prompt is written for you from the Turn and Height you pick.'
             : luzApi ? 'Describe the light below, or drop a photo in "Light from" to copy its light. US$ 0.11, runs on Comfy credits.'
             : f.id === 'angulo' && metodoAngulo === 'personagem' ? 'The body turns and the framing stays. Faster, and better for the view from above.'
             : f.dica}</p>
-
           {f.id === 'reluz' && (<>
             <div className="hf-linha-controles">
               <Chips rotulo="Method" opcoes={[{ id: 'direcional', rotulo: 'Directional · local' }, { id: 'nuvem', rotulo: 'Magnific · API' }]}
@@ -383,13 +450,26 @@ export default function AbaEditar() {
                 </div>
               </div>
             ) : (
-              <div className="hf-linha-controles">
-                <img className="hf-esfera-luz" alt="Light preview" title="This lit sphere is what the model gets as the light guide"
-                  src={`/api/luz/mapa?azimute=${azimute}&elevacao=${elevacao}&intensidade=${intensidade}&temperatura=${temperatura}`} />
-                <Chips rotulo="Light from" opcoes={LADOS} valor={azimute} aoMudar={setAzimute} />
-                <Chips rotulo="Height" opcoes={ALTURAS} valor={elevacao} aoMudar={setElevacao} />
-                <Chips rotulo="Color" opcoes={CORES} valor={temperatura} aoMudar={setTemperatura} />
-                <Chips rotulo="Strength" opcoes={FORCAS} valor={intensidade} aoMudar={setIntensidade} />
+              <div className="hf-luz">
+                <div className="hf-campo"><span>Light direction</span>
+                  <LuzPad azimute={azimute} elevacao={elevacao} aoMudar={(az, el) => { setAzimute(az); setElevacao(el) }} />
+                </div>
+                <div className="hf-campo"><span>Strength</span>
+                  <div className="hf-luz-linha">
+                    <input type="range" min={0} max={100} value={Math.round((intensidade - 0.1) / 1.4 * 100)} aria-label="Strength"
+                      onChange={(e) => setIntensidade(Math.round((0.1 + Number(e.target.value) / 100 * 1.4) * 100) / 100)} className="hf-luz-forca" />
+                    <b>{Math.round((intensidade - 0.1) / 1.4 * 100)}</b>
+                  </div>
+                </div>
+                <div className="hf-campo"><span>Color temperature</span>
+                  <div className="hf-luz-linha">
+                    <input type="range" min={-50} max={50} value={tempLuz} aria-label="Color temperature" className="hf-luz-temp"
+                      onChange={(e) => { const v = Number(e.target.value); setTempLuz(v); setTemperatura(v > 15 ? 'quente' : v < -15 ? 'fria' : 'neutra') }} />
+                    <b>{tempLuz}</b>
+                  </div>
+                </div>
+                <Chips rotulo="Light from behind" opcoes={[{ id: 0, rotulo: 'No' }, { id: 1, rotulo: 'Backlight' }]}
+                  valor={Math.abs(azimute) > 90 ? 1 : 0} aoMudar={(v) => setAzimute(v ? 180 : 0)} />
               </div>
             )}
           </>)}
@@ -402,7 +482,10 @@ export default function AbaEditar() {
           )}
           {f.id === 'anygles' && (<>
             <div className="hf-linha-controles">
-              <Chips rotulo="Engine" opcoes={MOTORES_ORBITA} valor={motorOrbita} aoMudar={(v) => { setMotorOrbita(v); setPrevia(null) }} />
+              <label className="hf-campo"><span>Engine</span>
+                <select className="hf-select" value={motorOrbita} aria-label="Engine" onChange={(e) => { setMotorOrbita(e.target.value); setPrevia(null) }}>
+                  {MOTORES_ORBITA.map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
+                </select></label>
             </div>
             {comFrase || com3d ? (
               <div className="hf-orbita">
@@ -540,23 +623,30 @@ export default function AbaEditar() {
 
           {com3d && <p className="hf-orbita-frase"><b>How it works:</b> the photo becomes a 3D model (about 40 s the first time), the preview shows it at the exact angle, and Apply turns that view into a photo with Qwen Image Edit, using your photo for the face, clothes and place. About 3 minutes.</p>}
           {comFrase && <p className="hf-orbita-frase"><b>Prompt (written for you):</b> {fraseOrbita(giro, alturaFrase, texto)}</p>}
-          {f.texto && (f.id !== 'ampliar' || metodoAmpliar === 'magnific') && <textarea aria-label="Prompt" maxLength={MAX_PROMPT} value={texto} onChange={(e) => setTexto(e.target.value)} rows={1}
-            placeholder={luzApi ? 'Describe the light, e.g. "warm sunset light from the left, soft shadows"' : f.id === 'area' ? 'What it should become, e.g. "a red leather jacket"' : f.texto === 'obrigatorio' ? 'Describe what to draw on this structure…' : 'Optional: an extra touch, e.g. "keep the background dark"'} />}
-          <div className="hf-linha-controles">
+          {f.texto && (f.id !== 'ampliar' || metodoAmpliar === 'magnific') && <div className="hf-campo hf-edt-texto"><span>{luzApi ? 'Light' : f.id === 'area' ? 'New look' : f.texto === 'obrigatorio' ? 'Prompt' : 'Optional'}</span><textarea aria-label="Prompt" maxLength={MAX_PROMPT} value={texto} onChange={(e) => setTexto(e.target.value)} rows={1}
+            placeholder={luzApi ? 'Describe the light, e.g. "warm sunset light from the left, soft shadows"' : f.id === 'area' ? 'What it should become, e.g. "a red leather jacket"' : f.texto === 'obrigatorio' ? 'Describe what to draw on this structure…' : 'An extra touch, e.g. "keep the background dark"'} /></div>}
+            <BotaoGerar rotulo="✦ Apply" est={custo} desligado={faltaImagem || faltaTexto || naoInstalado || soLocal} aoClicar={gerar} />
             {naoInstalado && <span className="hf-dica">Needs {pacoteAtual}.</span>}
             {soLocal && <span className="hf-dica">This tool runs on your GPU. Switch to Local to use it.</span>}
-            <span className="hf-espaco" />
-            <BotaoGerar rotulo="Apply ✦" est={custo} desligado={faltaImagem || faltaTexto || naoInstalado || soLocal} aoClicar={gerar} />
-          </div>
-          {naoInstalado && <AvisoInstalar rotulo={pacoteAtual!} semMenu />}
-          {erro && <p className="hf-erro">{erro}</p>}
-        </div>
-      )}
+            {naoInstalado && <AvisoInstalar rotulo={pacoteAtual!} semMenu />}
+            {erro && <p className="hf-erro">{erro}</p>}
+          </>) : <p className="hf-dica">Pick a tool on the left.</p>}
+        </aside>
+      </div>
 
-      <Galeria>
-        {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
-      </Galeria>
-      {!minhas.length && <p className="hf-vazio">Your edits will appear here.</p>}
+      <section className="hf-img-recentes" aria-label="Recent edits">
+        <span className="hf-img-titulo">Recent edits</span>
+        <div className="hf-img-faixa">
+          {emCurso.map((t) => <div key={t.id} className="hf-img-faixa-item hf-img-faixa-curso"><CartaoTarefa t={t} /></div>)}
+          {recentes.map((a) => (
+            <button key={a.subpasta + a.nome} type="button" className="hf-img-faixa-item" data-ativo={depois?.nome === a.nome}
+              onClick={() => setVerResultado(a)} title="Show it in the big view">
+              <img src={urlImagem(a)} alt="" loading="lazy" />
+            </button>
+          ))}
+          {!recentes.length && !emCurso.length && <p className="hf-vazio">Your edits will appear here.</p>}
+        </div>
+      </section>
     </div>
   )
 }

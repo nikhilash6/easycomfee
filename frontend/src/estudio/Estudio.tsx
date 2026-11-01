@@ -10,6 +10,7 @@ import BotaoAtualizar from './BotaoAtualizar'
 import MedidorRecursos from './MedidorRecursos'
 import AvisoComfy from './AvisoComfy'
 import MenuEstudios, { ESTUDIOS } from './MenuEstudios'
+import IconeMenu from './IconesMenu'
 import AbaCinema from './AbaCinema'
 import AbaGenjutsu from './AbaGenjutsu'
 import AbaImagem from './AbaImagem'
@@ -221,28 +222,28 @@ export default function Estudio() {
 
   return (
     <MotorCtx.Provider value={{ naNuvem, temChave, instalados, ocultarNaoInstalados: ocultar }}>
-    <div className="hf">
-      <header className="hf-topo">
-        {/* Assinatura horizontal aprovada (nome em curvas dentro do SVG). Em tela estreita fica so o simbolo. */}
-        {/* Esquerda: a marca e, ao lado, o medidor de RAM/VRAM (a direita fica so com conta e config). */}
-        <div className="hf-esquerda">
-          <a className="hf-marca" href="#image" onClick={() => ir('image')} aria-label="EasyComfee home">
-            <img className="hf-marca-completa" src="/brand/easycomfee-logo-horizontal.svg?v=5" alt="" />
-            <img className="hf-marca-simbolo" src="/brand/easycomfee-symbol.svg" alt="" />
-          </a>
-          <MedidorRecursos />
-        </div>
-        <nav className="hf-nav" ref={barra} aria-label="Tabs">
-          {/* Os estudios ficam no botao Studios (MenuEstudios), logo depois de Video. */}
+    <div className="hf hf-com-lateral">
+      {/* Barra lateral (layout de 31/10/2026): marca, as abas com icone (a ativa em destaque,
+          icone lima) e, embaixo, o medidor de RAM/VRAM. Os estudios abrem pelo item Studios. */}
+      <aside className="hf-lateral">
+        <a className="hf-marca" href="#image" onClick={() => ir('image')} aria-label="EasyComfee home">
+          <img className="hf-marca-completa" src="/brand/easycomfee-logo-horizontal.svg?v=5" alt="" />
+          <img className="hf-marca-simbolo" src="/brand/easycomfee-symbol.svg" alt="" />
+        </a>
+        <nav className="hf-lat-nav" ref={barra} aria-label="Tabs">
           {ABAS.filter((a) => !ESTUDIOS.some((e) => e.id === a.id)).map((a) => (
             <span key={a.id} style={{ display: 'contents' }}>
-              <button data-ativo={aba === a.id} aria-current={aba === a.id ? 'page' : undefined} onClick={() => ir(a.id)}>
-                {a.rotulo}{a.breve && <sup>soon</sup>}
+              <button data-ativo={aba === a.id} aria-current={aba === a.id ? 'page' : undefined} onClick={() => ir(a.id)} title={a.rotulo}>
+                <IconeMenu nome={a.id} /><span className="hf-lat-rotulo">{a.rotulo}</span>{a.breve && <sup>soon</sup>}
               </button>
-              {a.id === 'video' && <MenuEstudios aba={aba} ir={(id) => ir(id as Aba)} />}
+              {a.id === 'video' && <MenuEstudios aba={aba} ir={(id) => ir(id as Aba)} lateral icone={<IconeMenu nome="estudios" />} />}
             </span>
           ))}
         </nav>
+        <MedidorRecursos />
+      </aside>
+      <div className="hf-principal">
+      <header className="hf-topo hf-topo-direita">
         <div className="hf-direita">
           {ativa && <PainelAndamento key={ativa.id} tarefa={ativa}
             naFila={tarefas.filter((t) => t.estado === 'na_fila' && t.id !== ativa.id).length} />}
@@ -276,6 +277,7 @@ export default function Estudio() {
         {aba === 'advanced' && <AbaNodes />}
         </ProtegeAba>
       </main>
+      </div>
 
       <Visualizador />
       {avisoMotor && (

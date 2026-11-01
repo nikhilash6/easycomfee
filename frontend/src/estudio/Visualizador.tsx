@@ -85,7 +85,7 @@ function origemDe(info: ItemGaleria | null, atual: string): string | null {
 }
 
 /** Antes e depois, lado a lado ou com cortina; videos andam juntos. */
-function ThenNow({ antes, depois, modo }: { antes: string; depois: string; modo: 'lado' | 'cortina' }) {
+export function ThenNow({ antes, depois, modo, rotulos = ['Then', 'Now'] }: { antes: string; depois: string; modo: 'lado' | 'cortina'; rotulos?: [string, string] }) {
   const [corte, setCorte] = useState(50)
   const vA = useRef<HTMLVideoElement>(null)
   const vD = useRef<HTMLVideoElement>(null)
@@ -103,8 +103,8 @@ function ThenNow({ antes, depois, modo }: { antes: string; depois: string; modo:
     : <img src={src} alt="" />
   if (modo === 'lado') return (
     <div className="hf-tn-lado">
-      <figure>{midia(antes, vA)}<figcaption>Then</figcaption></figure>
-      <figure>{midia(depois, vD)}<figcaption>Now</figcaption></figure>
+      <figure>{midia(antes, vA)}<figcaption>{rotulos[0]}</figcaption></figure>
+      <figure>{midia(depois, vD)}<figcaption>{rotulos[1]}</figcaption></figure>
     </div>
   )
   return (
@@ -112,7 +112,7 @@ function ThenNow({ antes, depois, modo }: { antes: string; depois: string; modo:
       {midia(depois, vD)}
       <div className="hf-tn-antes" style={{ clipPath: `inset(0 ${100 - corte}% 0 0)` }}>{midia(antes, vA)}</div>
       <div className="hf-tn-linha" style={{ left: `${corte}%` }} />
-      <span className="hf-tn-rotulo" data-lado="esq">Then</span><span className="hf-tn-rotulo" data-lado="dir">Now</span>
+      <span className="hf-tn-rotulo" data-lado="esq">{rotulos[0]}</span><span className="hf-tn-rotulo" data-lado="dir">{rotulos[1]}</span>
       <input type="range" min={0} max={100} value={corte} onChange={(e) => setCorte(Number(e.target.value))} aria-label="Slide between before and after" />
     </div>
   )

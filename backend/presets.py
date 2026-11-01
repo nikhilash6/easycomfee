@@ -1769,7 +1769,7 @@ NUVEM.update({
     "wan25img": _api("Wan 2.5 Image", "Alibaba Wan. Text to image.", "WanTextToImageApi",
                      campos={"model": "wan2.5-t2i-preview", "negative_prompt": "", "prompt_extend": True,
                              "watermark": False},
-                     prompt="prompt", seed="seed", formato=("wh", "width", "height"), nivel=("", ["1K"])),
+                     prompt="prompt", seed="seed", formato=("wh", "width", "height"), nivel=("", ["1K"]), lados=(768, 1440)),
     "hunyuan35": _api("Hunyuan Image 3.5", "Tencent. Up to 4K.", "HunyuanImageTextToImageApi",
                       campos={"model": "hy-image-3.5-preview", "model.width": 2048, "model.height": 2048,
                               "model.watermark": False},

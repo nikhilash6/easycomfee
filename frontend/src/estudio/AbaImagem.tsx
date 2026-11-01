@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { recriar, useRecriar, useReusarPrompt, type Receita } from './Visualizador'
-import { api, urlEntrada, type Elemento, type Modelo, type ModeloNuvem, type Referencia } from '../api'
+import { abrirVisualizador, recriar, useRecriar, useReusarPrompt, type Receita } from './Visualizador'
+import { api, urlEntrada, urlImagem, type Elemento, type Modelo, type ModeloNuvem, type Referencia } from '../api'
 import LayoutIdeogram from './LayoutIdeogram'
 import { AvisoInstalar, GruposAbertos, useEscolha, useFaltaInstalar, useInstalado, useValor, valorAberto } from './motor'
 import { LOOKS, aplicarLook } from './looks'
-import { AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes, BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, Galeria, parteDoHash, teclasRadio, useLembrado, MAX_PROMPT } from './comum'
+import { AJUSTES_VAZIOS, Avancado, camposAjustes, type Ajustes, BotaoGerar, CartaoTarefa, Chips, SlotImagem, Midia, arquivos, mensagem, useCusto, useTarefas, parteDoHash, teclasRadio, useLembrado, MAX_PROMPT, TituloPagina } from './comum'
 
 // Image tab: one prompt bar, the model, aspect ratio and how many images.
 // Everything else (steps, cfg, styles) keeps its defaults; the full controls
@@ -88,6 +88,12 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
   const [proporcao, setProporcao] = useState('1:1')
   const [lote, setLote] = useState(1)
   const [refs, setRefs] = useState<Referencia[]>([])
+  const [selecionada, setSelecionada] = useState<{ nome: string; subpasta: string } | null>(null)
+  const [salvas, setSalvas] = useState<{ nome: string; subpasta: string }[]>([])
+  useEffect(() => {
+    api.galeria(40).then((itens) => setSalvas(itens.filter((i) => !i.duracao_video && /\.(png|jpe?g|webp)$/i.test(i.arquivo))
+      .map((i) => ({ nome: i.arquivo, subpasta: i.subpasta })))).catch(() => {})
+  }, [])
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_VAZIOS)
   // "Recreate" (galeria/visualizador): volta prompt, imagens, proporcao e modelo.
   // Com imagens o pedido foi no modo de referencia (flux3ref...): volta ao modelo do menu.
@@ -183,7 +189,7 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
   // modelo nao instalado e mandava o pedido com o botao desligado).
   const desligado = naoInstalado || faltaFoto || (!prompt.trim() && !lookAtual)
   const gerar = async () => {
-    setErro(null)
+    setErro(null); setSelecionada(null)  // a imagem nova vai para o palco quando sair
     try {
       await api.gerar({ ...pedido, prompt: aplicarLook(lookAtual, prompt, comRefs) } as Parameters<typeof api.gerar>[0])
     } catch (e) { setErro(mensagem(e)) }
@@ -199,17 +205,22 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
   const minhas = tarefas.filter((t) => modelos.some((m) => m.id === t.modelo) || apiModelos.some((m) => m.id === t.modelo)
     || modosRef.has(t.modelo))
 
-  return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">IMAGE · OPEN WEIGHTS AND API MODELS</span>
-        <h1>Turn a sentence into a <em>picture</em></h1>
-      </div>
+  // Layout de 3 colunas (31/10/2026): looks a esquerda, a imagem grande no centro com o
+  // prompt embaixo, o painel "Create image" a direita e as recentes numa faixa.
+  // As desta sessao primeiro; depois as imagens ja salvas na galeria (ao abrir o app a
+  // sessao esta vazia e o palco ficaria em branco).
+  const daSessao = minhas.flatMap((t) => (t.estado === 'pronto' ? arquivos(t) : []))
+  const recentes = [...daSessao, ...salvas.filter((a) => !daSessao.some((b) => b.nome === a.nome && b.subpasta === a.subpasta))]
+  const emCurso = minhas.filter((t) => t.estado !== 'pronto' && t.estado !== 'erro')
+  const palco = (selecionada && recentes.find((a) => a.nome === selecionada.nome && a.subpasta === selecionada.subpasta)) || recentes[0]
 
-      <div className="hf-barra-prompt">
-        {(
+  return (
+    <div className="hf-aba hf-img">
+      <TituloPagina antes="Create an" destaque="image" sub="Pick a look or write a prompt, on your GPU or on Comfy Cloud." />
+      <div className="hf-img-grade">
+        <section className="hf-img-col hf-img-esq" aria-label="One-tap looks">
           <div className="hf-looks">
-            <span className="hf-grupo-rotulo">One-tap looks</span>
+            <span className="hf-img-titulo">One-tap looks</span>
             {/* Cartoes com miniatura: cada uma e uma amostra real do look (Flux 3 Klein). */}
             <div className="hf-looks-grade" role="radiogroup" aria-label="One-tap looks" onKeyDown={teclasRadio}>
               <button type="button" role="radio" aria-checked={look === ''} tabIndex={look === '' || !lookAtual ? 0 : -1} className="hf-look" data-ativo={look === ''} onClick={() => setLook('')}>
@@ -227,9 +238,46 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
             </div>
             {comRefs && <small className="hf-looks-dica">With an image in the box, the look restyles your photo. Remove the image to make a new picture from text.</small>}
           </div>
-        )}
+        </section>
+
+        <section className="hf-img-centro">
+          <div className="hf-img-palco">
+            {emCurso[0] && !palco ? <CartaoTarefa t={emCurso[0]} />
+              : palco ? <Midia key={palco.subpasta + palco.nome} nome={palco.nome} subpasta={palco.subpasta} />
+              : <div className="hf-img-vazio"><b>Your image appears here</b><span>Pick a look or write a prompt, then press Generate.</span></div>}
+            {emCurso[0] && palco && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
+          </div>
+          {/* Navegacao entre as imagens recentes, logo abaixo da imagem grande. */}
+          {(() => {
+            const i = palco ? recentes.findIndex((a) => a.nome === palco.nome && a.subpasta === palco.subpasta) : -1
+            const ir = (d: number) => { const n = recentes[i + d]; if (n) setSelecionada(n) }
+            return (
+              <div className="hf-edt-barra hf-img-nav">
+                <button type="button" className="hf-botao-sec" disabled={i <= 0} onClick={() => ir(-1)} aria-label="Previous image" title="Newer">‹</button>
+                <span className="hf-botao-sec">{recentes.length ? `${i + 1} / ${recentes.length}` : '0 / 0'}</span>
+                <button type="button" className="hf-botao-sec" disabled={i < 0 || i >= recentes.length - 1} onClick={() => ir(1)} aria-label="Next image" title="Older">›</button>
+                <button type="button" className="hf-botao-sec" disabled={!palco} onClick={() => palco && abrirVisualizador(palco)} aria-label="Full screen" title="Full screen with details">⤢</button>
+              </div>
+            )
+          })()}
+          <div className="hf-img-prompt">
+            <span className="hf-img-titulo">Prompt</span>
+            <div className="hf-img-prompt-linha">
+        <textarea aria-label="Prompt" maxLength={MAX_PROMPT} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={1}
+          placeholder={comRefs && lookAtual ? `Optional: an extra touch for ${lookAtual.rotulo}, e.g. "smiling" or "blue background"`
+            : comRefs ? 'Describe the result. Refer to the images as @image1, @image2…'
+            : faltaFoto ? 'Add your photo under Character (right), then press Generate. Optional: extra direction here.'
+            : lookAtual ? `What should it show? e.g. ${lookAtual.exemplo} (empty = this example)` : 'Describe the image you want…'}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !desligado) gerar() }} />
+              <BotaoGerar est={custo} desligado={desligado} aoClicar={gerar} />
+            </div>
+          </div>
+        </section>
+
+        <aside className="hf-img-col hf-img-dir" aria-label="Create image">
+          <span className="hf-img-titulo hf-img-titulo-forte">Create image</span>
         {maxRefs > 0 && (
-          <div className="hf-slots">
+          <div className="hf-campo"><span>{usoRefs?.base ? 'Images' : 'Character'}</span><div className="hf-slots">
             {refsOk.map((r, i) => (
               <SlotImagem key={r.nome + i} rotulo={i === 0 && usoRefs?.base ? 'Base image' : `Image ${i + 1}`} valor={r}
                 aoMudar={(n) => setRefs((a) => n ? a.map((x, j) => (j === i ? n : x)) : a.filter((_, j) => j !== i))} />
@@ -238,15 +286,9 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
               <SlotImagem key={`novo${refsOk.length}`} rotulo={refsOk.length ? `Image ${refsOk.length + 1}` : usoRefs?.base ? 'Base image' : 'Character'}
                 valor={null} aoMudar={(n) => n && setRefs((a) => [...a.slice(0, maxRefs), n])} />
             )}
-          </div>
+          </div></div>
         )}
-        <textarea aria-label="Prompt" maxLength={MAX_PROMPT} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2}
-          placeholder={comRefs && lookAtual ? `Optional: an extra touch for ${lookAtual.rotulo}, e.g. "smiling" or "blue background"`
-            : comRefs ? 'Describe the result. Refer to the images as @image1, @image2…'
-            : faltaFoto ? 'Add your photo in the box above (+ Character), then press Generate. Optional: extra direction here.'
-            : lookAtual ? `What should it show? e.g. ${lookAtual.exemplo} (empty = this example)` : 'Describe the image you want…'}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !desligado) gerar() }} />
-        <div className="hf-linha-controles">
+        <div className="hf-img-controles">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">
             <GruposAbertos itens={modelos.map((m) => ({ id: m.id, rotulo: m.rotulo, nuvem: m.nuvem }))} api={apiModelos} />
           </select></label>
@@ -260,7 +302,6 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
           {apiAtual && niveis.length > 1 && (
             <Chips rotulo="Resolution" opcoes={niveis.map((n) => ({ id: n, rotulo: n }))} valor={nivelOk} aoMudar={setNivel} />
           )}
-          <BotaoGerar est={custo} desligado={desligado} aoClicar={gerar} />
         </div>
         {!apiAtual && <Avancado valor={ajustes} aoMudar={setAjustes} comPassos />}
         {ehIdeogram && (
@@ -282,12 +323,22 @@ export default function AbaImagem({ modelos, apiModelos, apiOcultos = [], naNuve
         {indisponivel && !soLocal && <p className="hf-erro" role="alert">{`"${escolhido}" is not available here: an unknown name, or a paid API model (those need a Comfy Cloud key and "Paid API models" turned on in Config Models → Comfy Cloud API). Showing ${atual?.rotulo ?? 'another model'} instead.`}</p>}
         {naoInstalado && <AvisoInstalar rotulo={atual?.rotulo ?? modelo} />}
         {erro && <p className="hf-erro">{erro}</p>}
+        </aside>
       </div>
 
-      <Galeria>
-        {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
-        {minhas.length === 0 && <p className="hf-vazio">Your images will appear here.</p>}
-      </Galeria>
+      <section className="hf-img-recentes" aria-label="Recent generations">
+        <span className="hf-img-titulo">Recent generations</span>
+        <div className="hf-img-faixa">
+          {emCurso.map((t) => <div key={t.id} className="hf-img-faixa-item hf-img-faixa-curso"><CartaoTarefa t={t} /></div>)}
+          {recentes.map((a) => (
+            <button key={a.subpasta + a.nome} type="button" className="hf-img-faixa-item" data-ativo={palco?.nome === a.nome}
+              onClick={() => setSelecionada(a)} title="Show it in the big view">
+              <img src={urlImagem(a)} alt="" loading="lazy" />
+            </button>
+          ))}
+          {!recentes.length && !emCurso.length && <p className="hf-vazio">Your images will appear here.</p>}
+        </div>
+      </section>
     </div>
   )
 }

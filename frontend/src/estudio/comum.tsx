@@ -61,7 +61,7 @@ export function parteDoHash(n: number): string {
   return decodeURIComponent(location.hash.replace(/^#/, '').split('/')[n] ?? '')
 }
 
-const EVENTO_REMOVIDO = 'openfield:removido'
+export const EVENTO_REMOVIDO = 'openfield:removido'
 const EVENTO_DISPENSADO = 'openfield:dispensado'
 
 /** As tarefas para as galerias das abas. Os testes de diagnostico (teste: true) ficam
@@ -630,6 +630,22 @@ export function Avancado({ valor, aoMudar, comPassos, nota }: { valor: Ajustes; 
           {ativo && <button type="button" className="hf-ajustes-limpar" onClick={() => aoMudar(AJUSTES_VAZIOS)}>Reset</button>}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Titulo de cada pagina, no mesmo padrao em todas: uma frase curta com a parte final na cor
+ *  de destaque, um selo opcional (BETA, modelo) e, se precisar, um subtitulo pequeno. */
+export function TituloPagina({ antes, destaque, sub, selo, children }: {
+  antes: string; destaque: string; sub?: ReactNode; selo?: ReactNode; children?: ReactNode
+}) {
+  return (
+    <div className="hf-titulo-pag">
+      <div>
+        <h1>{antes} <em>{destaque}</em>{selo && <small>{selo}</small>}</h1>
+        {sub && <p>{sub}</p>}
+      </div>
+      {children}
     </div>
   )
 }

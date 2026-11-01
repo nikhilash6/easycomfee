@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useReusarPrompt } from './Visualizador'
 import { AvisoInstalar, GruposAbertos, useEscolha, useFaltaInstalar, useValor } from './motor'
 import { api, type Referencia } from '../api'
-import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, Galeria, useFalaPendente, useLembrado, textoDoDetalhe, MAX_PROMPT } from './comum'
+import { BotaoGerar, CartaoTarefa, Chips, SlotImagem, mensagem, useCusto, useTarefas, Galeria, useFalaPendente, useLembrado, textoDoDetalhe, MAX_PROMPT, TituloPagina } from './comum'
 
 // Lip Sync: a portrait and a voice track become a talking video. LTX 2.3 is the
 // open-weights default (up to 30 s); with "Open weights only" off, the Comfy
@@ -101,12 +101,14 @@ export default function AbaLipSync({ apiModelos }: { apiModelos: ModeloLipSync[]
   const minhas = tarefas.filter((t) => t.modelo === 'avatar')
 
   return (
-    <div className="hf-aba">
-      <div className="hf-heroi hf-heroi-compacto">
-        <span className="hf-sobretitulo">LIP SYNC · {cfg.rotulo.toUpperCase()}</span>
-        <h1>Make any portrait <em>talk</em></h1>
-        <p className="hf-dica">A photo plus a voice track becomes a talking video, up to {LIMITE} seconds, on your GPU or on Comfy Cloud.</p>
-      </div>
+    <div className="hf-aba hf-img hf-lsn">
+      <TituloPagina antes="Make any portrait" destaque="talk" selo={cfg.rotulo}
+        sub={`A photo plus a voice track becomes a talking video, up to ${LIMITE} seconds, on your GPU or on Comfy Cloud.`} />
+      <ol className="hf-lsn-etapas" aria-label="Steps">
+        <li data-feito={!!foto}><i>1</i>Portrait</li>
+        <li data-feito={!!fala && !longa}><i>2</i>Voice</li>
+        <li data-feito={!!cena.trim()}><i>3</i>Scene</li>
+      </ol>
 
       <div className="hf-barra-prompt hf-ls">
         <div className="hf-ls-passos">
@@ -144,7 +146,7 @@ export default function AbaLipSync({ apiModelos }: { apiModelos: ModeloLipSync[]
           </section>
         </div>
 
-        <div className="hf-linha-controles">
+        <div className="hf-linha-controles hf-lsn-barra">
           <label className="hf-campo"><span>Model</span><select className="hf-select" value={valorSelect} onChange={(e) => escolher(e.target.value)} aria-label="Model">
             <GruposAbertos itens={ABERTOS.map((m) => ({ id: m.id, rotulo: m.rotulo }))} api={apiModelos} />
           </select></label>
@@ -152,16 +154,19 @@ export default function AbaLipSync({ apiModelos }: { apiModelos: ModeloLipSync[]
           {ocupado && <span className="hf-dica">{ocupado}</span>}
           {longa && <span className="hf-erro">The voice is {fala!.segundos.toFixed(1)} s; the limit is {LIMITE} s.</span>}
           <span className="hf-espaco" />
-          <BotaoGerar est={custo} desligado={!pronto} aoClicar={gerar} />
+          <BotaoGerar rotulo="Generate ✦" est={custo} desligado={!pronto} aoClicar={gerar} />
         </div>
         {naoInstalado && <AvisoInstalar rotulo={cfg.rotulo} />}
         {erro && <p className="hf-erro">{erro}</p>}
       </div>
 
+      <section className="hf-img-recentes hf-lsn-recentes" aria-label="Your talking videos">
+      <span className="hf-img-titulo">Your talking videos</span>
       <Galeria tipo="video">
         {minhas.map((t) => <CartaoTarefa key={t.id} t={t} />)}
         {minhas.length === 0 && <p className="hf-vazio">Your talking videos will appear here.</p>}
       </Galeria>
+      </section>
     </div>
   )
 }
