@@ -2634,3 +2634,14 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .mq-bridge .mq-sub b { color: var(--hf-texto); }
 .mq-bridge .mq-botao-sec { white-space: nowrap; }
 .hf-desligado-is { color: #fff; } .hf-desligado-off { color: #E5484D; }
+
+/* Config Models: modelos em grupos recolhiveis (Image, Video, Lip Sync...). */
+.mq-grupo { margin-top: 12px; border: 1px solid var(--hf-linha); border-radius: 14px; padding: 0 12px; }
+.mq-grupo > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 10px; padding: 12px 2px; }
+.mq-grupo > summary::-webkit-details-marker { display: none; }
+.mq-grupo > summary::before { content: '▸'; color: var(--hf-neon); transition: transform .15s; }
+.mq-grupo[open] > summary::before { transform: rotate(90deg); }
+.mq-grupo > summary span { font-weight: 700; font-size: 15px; color: var(--hf-texto); }
+.mq-grupo > summary small { color: var(--hf-apagado); font-size: 12px; }
+.mq-grupo[open] { padding-bottom: 12px; }
+.mq-grupo > .mq-pacote:first-of-type { margin-top: 0; }

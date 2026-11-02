@@ -361,7 +361,16 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
         )}
         </div>
 
-        {perfil && pacotes?.filter((p) => !soQueRodam || p.nesta_maquina.selo !== 'nao_roda' || p.pronto === true).map((p) => {
+        {perfil && pacotes && GRUPOS.map((gr) => {
+          const lista = pacotes.filter((p) => grupoDoPacote(p) === gr.id)
+            .filter((p) => !soQueRodam || p.nesta_maquina.selo !== 'nao_roda' || p.pronto === true)
+          if (!lista.length) return null
+          const instalados = lista.filter((p) => p.pronto === true).length
+          const aberto = instalados > 0 || (!!prog?.ativo && lista.some((p) => p.id === prog.pacote))
+          return (
+          <details key={gr.id} className="mq-grupo" open={aberto || undefined}>
+            <summary><span>{gr.nome}</span><small>{lista.length} model{lista.length === 1 ? '' : 's'}{instalados ? ` · ${instalados} installed` : ''}</small></summary>
+          {lista.map((p) => {
           const baixando = !!prog?.ativo && prog.pacote === p.id
           const avaliacao = p.nesta_maquina
           const selo = SELOS[avaliacao.selo]
@@ -466,6 +475,9 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
             </section>
           )
         })}
+          </details>
+          )
+        })}
         </>}
         </div>
       </div>
@@ -476,6 +488,25 @@ export default function TelaModelos({ fechar, conta, abaInicial = 'locais', topo
 /** "Check for updates": pergunta ao GitHub agora (sem esperar os 30 min do cache) e, se houver
  *  versao nova, oferece atualizar ali mesmo; o botao do topo tambem aparece. */
 /** Safe mode: ligado de fabrica. Desligar pede confirmacao e passa a responsabilidade a quem usa. */
+// Grupos recolhiveis do Config Models, com os nomes das abas do app. O catalogo so
+// separa imagem/video/audio; o resto vem do id do pacote.
+const GRUPOS = [
+  { id: 'imagem', nome: 'Image' },
+  { id: 'edicao', nome: 'Edit & tools' },
+  { id: 'video', nome: 'Video' },
+  { id: 'efeitos', nome: 'Video effects & swap' },
+  { id: 'lipsync', nome: 'Lip Sync' },
+  { id: 'audio', nome: 'Music & voice' },
+] as const
+const GRUPO_POR_ID: Record<string, (typeof GRUPOS)[number]['id']> = {
+  qwen_edit: 'edicao', upscale: 'edicao', trellis: 'edicao',
+  ltx23: 'efeitos', h3_swap: 'efeitos', wan22_animate: 'efeitos', profundidade: 'efeitos',
+  avatar_ltx: 'lipsync', avatar: 'lipsync',
+}
+function grupoDoPacote(p: { id: string; tipo: string }) {
+  return GRUPO_POR_ID[p.id] ?? (p.tipo === 'imagem' ? 'imagem' : p.tipo === 'audio' ? 'audio' : 'video')
+}
+
 function ModoSeguro() {
   const [ligado, setLigado] = useState<boolean | null>(null)
   useEffect(() => { fetch('/api/motor').then((r) => r.json()).then((m) => setLigado(m.modo_seguro !== false)).catch(() => {}) }, [])

@@ -133,9 +133,18 @@ Paid partner models (Kling, Veo, Seedance, Runway, Nano Banana…) are **off by 
 Open **Config Models → Local models**:
 
 1. **Your machine.** The app reads your GPU, VRAM, RAM and free disk from ComfyUI.
-2. **Packages.** Each feature is a package. Every card says whether it **runs well**, is **limited** or **won't run** on your machine, with its size, license, source links and the files already present. Light packages (SD 1.5 from 4 GB, SDXL and LTX-Video 2B from 6 GB, Wan from 8 GB) make the app usable on small cards.
+2. **Packages.** Each feature is a package, in collapsible groups (Image, Edit & tools, Video, Video effects & swap, Lip Sync, Music & voice). Every card says whether it **runs well**, is **limited** or **won't run** on your machine, with its size, license, source links and the files already present. Light packages (SD 1.5 from 4 GB, SDXL and LTX-Video 2B from 6 GB, Wan from 8 GB) make the app usable on small cards.
 3. **Download.** Files come straight from Hugging Face into the exact ComfyUI subfolders the workflows expect. Downloads resume if interrupted.
 4. **Custom nodes.** Missing node packs are installed at pinned versions. Then restart ComfyUI once.
+
+Generation time of the open video models, measured on an RTX 5070 Ti (16 GB) with 64 GB RAM on 2026-11-01:
+
+| Model | Clip | Time |
+|---|---|---|
+| LTX-Video 2B | 10 s, 720p | ~1 min |
+| Wan 2.2 5B | 5 s, 720p | ~5 min |
+| Kandinsky 5 Lite | 5 s, 480p | ~14 min |
+| HunyuanVideo 1.5 | 5 s, 720p | ~47 min (the 8.3B model only partly fits in 16 GB) |
 
 ## Requirements
 
