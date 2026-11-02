@@ -29,6 +29,12 @@ bpy.ops.mesh.primitive_cube_add(size=2, location=(0, 0, 1))
 bpy.context.object.name = "Predio_A"
 bpy.ops.mesh.primitive_cube_add(size=1, location=(3, 2, 0.5))
 bpy.context.object.name = "Caixa"
+# Fundo com predios: sem ele, o 3D render nao le o giro da camera e move os objetos
+# (visto em 02/11/2026).
+for i in range(6):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(-15 + i * 6.5, 9, 3.5))
+    bpy.context.object.scale = (6, 3, 7)
+    bpy.context.object.name = f"Predio_fundo_{i}"
 bpy.ops.object.camera_add(location=(8, -8, 3))
 cam = bpy.context.object
 cam.name = "CAM_01"

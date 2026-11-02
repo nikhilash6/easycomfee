@@ -528,7 +528,6 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
   const minhas = tarefas.filter((t) => t.modelo === 'transformar_video' || t.modelo === 'profundidade_video'
     || (t.modelo === 'video' && t.prompt.includes('Slow motion')) || quadroMaquete(t.prompt))
 
-  const emCurso = minhas.filter((t) => t.estado !== 'pronto' && t.estado !== 'erro')
   const tarefaFeita = aplicadoEm ? minhas.find((t) => t.estado === 'pronto' && t.criada_em >= aplicadoEm) : undefined
   const resultado = tarefaFeita ? arquivos(tarefaFeita)[0] : undefined
 
@@ -601,7 +600,6 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
               : video ? <video src={urlEntrada(video.nome)} controls muted playsInline />
               : app ? <><video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline /><span className="hf-vfx-exemplo">Example · drop your video on the right</span></>
               : <div className="hf-img-vazio"><b>Pick an effect</b><span>Choose one on the left.</span></div>}
-            {emCurso[0] && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
           </div>
         </section>
 

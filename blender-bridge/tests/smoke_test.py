@@ -48,7 +48,8 @@ async def main():
             "esfera de metal, fotografia cinematográfica", frame=1, max_size=1024))
         assert st["files"], st
         show("blockout_to_video", await app.blockout_to_video(
-            "rua de cidade ao entardecer, câmera em travelling lento, cinematográfico",
+            "rua de cidade ao entardecer; os objetos ficam parados e a câmera gira devagar em volta "
+            "do prédio, com os prédios do fundo deslizando atrás, cinematográfico",
             style_image=st["files"][0], frame_start=1, frame_end=48))
     print("\nOK")
 

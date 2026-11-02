@@ -201,7 +201,6 @@ export default function AbaVideo({ apiGeradores = [], apiOcultos = [], naNuvem =
               onLoadedMetadata={(e) => setTamanhoVideo([e.currentTarget.videoWidth, e.currentTarget.videoHeight])} />
           </>) : emCurso[0] ? <CartaoTarefa t={emCurso[0]} />
             : <div className="hf-img-vazio"><b>Your video appears here</b><span>Describe the shot on the right, then press Generate.</span></div>}
-          {emCurso[0] && palco && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
         </section>
 
         <aside className="hf-img-col hf-img-dir hf-vid-dir" aria-label="Create video">

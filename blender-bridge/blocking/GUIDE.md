@@ -174,6 +174,16 @@ world + action + camera.
 - **Sequences with cuts:** the safe path is one `blockout_to_video` per shot (its
   `frame_start`/`frame_end` and `camera`), the same style image for all, `import_mode="vse"`.
 
+## Camera moves around still objects
+3D render → Video only sees motion it can read in the guide. If the objects stand still and
+only the camera moves (orbit, dolly, crane), the guide MUST show the world moving: keep
+`PV.checker(posts=12)` and add something behind the subject (a `row` of slabs for buildings
+or walls). With a plain floor and an empty background the model invents a still background
+and moves the objects instead. In both prompts say the objects stand still and name the
+move: "the objects stand still; the camera slowly orbits the crate from right to left, the
+buildings slide behind it". Give each block ONE identity in the prompt, or the model adds a
+second object for the extra description.
+
 ## Build defaults — never ask
 - **The hero is a red block**, 0.50 × 0.35 × 1.80 m for a person. Never a character or rig.
 - **Color is identity.** Extra subjects get contrasting colors from `PV.PALETTE`; the

@@ -402,7 +402,6 @@ export default function AbaEditar() {
                   : imgs[0] ? <img src={imgs[0].url} alt="Your photo" />
                   : <div className="hf-img-vazio"><b>{f ? 'Drop a photo to start' : 'Pick a tool'}</b><span>{f ? 'Use the box on the right, or drag one from a gallery.' : 'Choose an edit on the left.'}</span></div>}
               </div>
-              {emCurso[0] && <div className="hf-img-andamento"><CartaoTarefa t={emCurso[0]} /></div>}
             </div>
           )}
           {f?.id !== 'anygles' && (
