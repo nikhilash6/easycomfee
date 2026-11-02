@@ -36,8 +36,15 @@ def _placa() -> str | None:
     try:
         r = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=10)
         if r.returncode == 0:
-            m = re.search(r"CUDA Version:\s*(\d+)", r.stdout)
-            return "nvidia" if m and int(m.group(1)) >= 13 else "nvidia_cu126"
+            # Driver 610+ escreve "CUDA UMD Version: 13.3" em vez de "CUDA Version: 13.3"
+            # (01/11/2026): sem achar o texto, o pacote cu126 vinha para uma RTX 50, que ele
+            # nao roda. Sem nenhum dos dois, vale o numero do driver (CUDA 13 pede o 580+).
+            m = re.search(r"CUDA (?:UMD )?Version:\s*(\d+)", r.stdout)
+            if m:
+                return "nvidia" if int(m.group(1)) >= 13 else "nvidia_cu126"
+            m = re.search(r"Driver Version:\s*(\d+)|NVIDIA-SMI\s+(\d+)", r.stdout)
+            versao = int(next(g for g in m.groups() if g)) if m else 0
+            return "nvidia" if versao >= 580 else "nvidia_cu126"
     except (OSError, subprocess.SubprocessError):
         pass
     try:
