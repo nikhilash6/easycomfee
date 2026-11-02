@@ -614,7 +614,7 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
               .filter((a) => !busca.trim() || (a.nome + ' ' + a.frase).toLowerCase().includes(busca.trim().toLowerCase()))
               .map((a) => (
               <button key={a.id} className="hf-app hf-vfx-cartao" data-ativo={app?.id === a.id} aria-pressed={app?.id === a.id} onClick={() => abrir(a)}>
-                <video src={`/exemplos/${a.id}.mp4?v=9#t=1.5`} muted loop playsInline preload="metadata"
+                <video src={`/exemplos/${a.id}.mp4?v=10#t=1.5`} muted loop playsInline preload="metadata"
                   onMouseEnter={(e) => { e.currentTarget.play().catch(() => {}) }} onMouseLeave={(e) => e.currentTarget.pause()}
                   onError={(e) => { (e.currentTarget as HTMLVideoElement).style.visibility = 'hidden' }} />
                 {a.id === 'maquete' && <small className="hf-selo-neon">Experimental</small>}
@@ -638,7 +638,7 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
             {video && resultado ? <ThenNow antes={urlEntrada(video.nome)} depois={transparente || urlImagem(resultado)} ehVideo={transparente ? true : undefined} modo={comparar} rotulos={['Before', 'After']} />
               : resultado ? <video src={transparente || urlImagem(resultado)} controls autoPlay loop muted playsInline />
               : video ? <video src={urlEntrada(video.nome)} controls muted playsInline />
-              : app ? <><video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline /><span className="hf-vfx-exemplo">Example · drop your video on the right</span></>
+              : app ? <><video src={`/exemplos/${app.id}.mp4?v=10`} autoPlay loop muted playsInline /><span className="hf-vfx-exemplo">Example · drop your video on the right</span></>
               : <div className="hf-img-vazio"><b>Pick an effect</b><span>Choose one on the left.</span></div>}
           </div>
           {transparente && <AjustesRecorte valor={recorte} aoMudar={setRecorte} webm={urlRecorte('webm')} mov={urlRecorte('mov')} />}
@@ -647,7 +647,7 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
         <aside className="hf-img-col hf-img-dir hf-vfx-dir" aria-label="Effect settings">
           {app ? (<>
             <div className="hf-vfx-cabeca">
-              <video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline />
+              <video src={`/exemplos/${app.id}.mp4?v=10`} autoPlay loop muted playsInline />
               {app.id === 'maquete' && <small className="hf-selo-neon">Experimental</small>}
               <b>{app.nome}</b>
               <span>{app.frase}</span>
