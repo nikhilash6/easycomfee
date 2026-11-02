@@ -265,28 +265,64 @@ async def editor_free_memory() -> str:
 
 # ------------------------------------------------------------ fluxo completo
 
+# Imagem base do quadro 1 (02/11/2026, 11 modelos comparados): um modelo de EDICAO
+# sobre o render COLORIDO segura enquadramento e objetos; gerar do zero a partir do
+# render cinza (profundidade/contorno) inventava e trocava objetos de lugar.
+_MANTER = (" Keep the exact camera angle, framing and composition: every object stays exactly "
+           "where it is, same size and shape. Add nothing else.")
+# Nome para a pessoa -> modelo de edicao do EasyComfee. Ordem = do mais fiel ao Blender
+# ao menos fiel no teste de 02/11 (Krea 2 ficou de fora: punha gente na cena).
+_MOTORES = {"flux3": "flux3ref", "qwen21": "qwen21edit", "kroma": "kroma", "klein": "trocar",
+            "mage": "instrucao", "qwen_edit": "qwen"}
+
+
 @mcp.tool()
 async def style_frame(prompt: str, camera: str | None = None, frame: int | None = None,
-                      source: str = "clay", control: str = "profundidade",
+                      engine: str = "flux3", control: str = "profundidade",
                       strength: float = 1.0, seed: int | None = None,
                       max_size: int = 1280, timeout_s: int = 900) -> list:
-    """Makes the final-look image of one frame from the blocking: renders the frame through
-    the camera (source='clay' or 'depth') and sends it to EasyComfee's structure-guided
-    image mode (control: 'profundidade' = depth, 'contorno' = edges, 'pose'). The result is
-    the style image for blockout_to_video. Describe the final scene in the prompt
-    (materials, light, era) and say what each colored block is."""
+    """Makes the final-look image of one frame from the blocking: the style image (and first
+    frame) for blockout_to_video. The frame is rendered in its block colors and an image-edit
+    model turns it into a photo, keeping the framing and every object. engine (the user may
+    pick; default 'flux3', the most faithful): 'flux3' FLUX 3 Klein, 'qwen21' Qwen Image 2.1
+    (used by itself if FLUX 3 fails), 'kroma' Kroma (more illustrated), 'klein' FLUX 2 Klein,
+    'mage' Mage, 'qwen_edit' Qwen Image Edit 2511 (also on Comfy Cloud; frames a bit wider).
+    'control' generates from the grey depth/edges render instead (control: 'profundidade',
+    'contorno', 'pose'; looser, may move or invent objects). Prompt: "Turn this 3D blockout
+    into a real cinematic photograph of ...", then what each colored block becomes, ONE
+    description per block, plus light and place."""
+    if engine not in _MOTORES and engine != "control":
+        raise ValueError(f"engine must be one of: {', '.join(_MOTORES)}, control")
     d = _run_dir("style")
     if frame is None:
         frame = (await _bl("get_scene", 30, limit=1))["frame"]["current"]
-    r = await _bl("render_frames", 300, output_dir=str(d), mode=source, camera=camera,
-                  frame_start=frame, frame_end=frame, max_size=max_size, prefix="guia_")
+    edicao = engine in _MOTORES
+    r = await _bl("render_frames", 300, output_dir=str(d), mode="clay", camera=camera,
+                  frame_start=frame, frame_end=frame, max_size=max_size, prefix="guia_",
+                  clay_color="MATERIAL" if edicao else "SINGLE")
     guia = r["frames"][0]
     nome = await editor.upload(guia)
-    pedido = {"modelo": "controle", "prompt": prompt, "referencias": [nome],
-              "tipo_controle": control, "forca_controle": strength}
+    if edicao:
+        pedido = {"modelo": _MOTORES[engine], "prompt": prompt + _MANTER, "referencias": [nome],
+                  "proporcao": "16:9" if r["resolution"][0] >= r["resolution"][1] else "9:16"}
+    else:
+        pedido = {"modelo": "controle", "prompt": prompt, "referencias": [nome],
+                  "tipo_controle": control, "forca_controle": strength}
     if seed is not None:
         pedido["seed"] = seed
-    out = await _finish(await editor.generate(pedido), "style_result", timeout_s)
+    try:
+        out = await _finish(await editor.generate(pedido), "style_result", timeout_s)
+        falha = out["erro"] if out["estado"] == "erro" else ""
+    except editor.EditorError as e:
+        out, falha = None, str(e)
+    if falha and engine == "flux3":
+        # FLUX 3 nao instalado (ou na nuvem, que nao o hospeda): o Qwen 2.1 faz o mesmo.
+        pedido["modelo"] = _MOTORES["qwen21"]
+        out = await _finish(await editor.generate(pedido), "style_result", timeout_s)
+        engine = f"qwen21 (FLUX 3 failed: {falha[:120]})"
+    elif out is None:
+        raise editor.EditorError(falha)
+    out["engine"] = engine
     out["guia"] = guia
     content = [_dump(out)]
     if out["files"]:

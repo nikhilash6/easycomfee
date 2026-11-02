@@ -53,7 +53,7 @@ Needs EasyComfee installed, **Blender 4.2+** (tested on 5.2), Python 3.11–3.13
 | Method | `blocking_guide`, `previz_solve` (offline camera solver, six gates per shot), `previz_load_core` |
 | Blender | `blender_status`, `blender_get_scene`, `blender_get_object`, `blender_execute_python`, `blender_api_lookup`, `blender_screenshot`, `blender_render` (clay, depth, normal, beauty), `blender_import_media` |
 | EasyComfee | `editor_status` (health and this PC's video length limit), `editor_upload`, `editor_generate`, `editor_task`, `editor_free_memory` |
-| Flows | `style_frame` (one frame → final-look image, structure-guided), `blockout_to_video` (animation → 3D render → Video, result back behind the camera) |
+| Flows | `style_frame` (first frame in block colors → photo, same framing and objects; FLUX 3 by default, or Qwen 2.1, Kroma, FLUX 2 Klein, Mage, Qwen Edit), `blockout_to_video` (animation → 3D render → Video, result back behind the camera) |
 
 Files go to `blender-bridge/output/`.
 

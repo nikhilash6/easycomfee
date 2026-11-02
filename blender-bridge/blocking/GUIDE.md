@@ -134,16 +134,23 @@ Edit the spec, `previz_solve`, build again. Seconds per iteration.
 
 ### 7 — Only after approval: the look, then the video
 Ask now (not at intake) for the style layer: photoreal, stylized, animation.
-1. **Style image — `style_frame(prompt=...)`.** Renders a frame of the blocking and sends
-   it to EasyComfee's structure-guided image mode. Cheap (~40 s): iterate here, not on the
-   video. Default `source="clay"`, `control="profundidade"` (depth ignores the blocks'
-   colors and the checkerboard). `control="contorno"` holds edges harder (architecture).
-   Compare the framing with the guide (`guia`). Show the image; go on only when approved.
+1. **Style image — `style_frame(prompt=...)`.** Renders the FIRST frame of the shot in the
+   blocks' colors and has FLUX 3 turn it into a photo, keeping the framing and every object
+   (Qwen Image 2.1 takes over if FLUX 3 is missing). Tell the user which model made it
+   and that they can pick another with `engine`: `qwen21`, `kroma` (more illustrated),
+   `klein`, `mage`, `qwen_edit` (also on Comfy Cloud) or `control`. This image is the anchor of the whole
+   video: whatever it adds or moves, the video repeats. ~1 min: iterate here, not on the
+   video. Prompt: "Turn this 3D blockout into a real cinematic photograph of <place, light>.
+   The red box becomes ..., the blue box becomes ...", one description per block.
+   **Compare it with the guide (`guia`) before going on:** same framing, every block there
+   once, nothing new. If something is off, change the prompt or the `seed` and run it again.
+   Show the image; go on only when approved.
 2. **Video — `blockout_to_video(prompt=..., style_image=<approved image>)`.** Renders the
    animation, sends it to **3D render → Video** and puts the result behind the camera
-   (`import_mode`). `keyframes=[{"frame": n, "image": path}]` pins extra style frames at
-   moments of the shot. `effect="profundidade"` (Follow depth) when the blocks' colors or
-   the checkerboard leak into the video.
+   (`import_mode`). Do NOT add `keyframes` by default: style frames made separately each
+   drift in their own way and the video follows all of them. Use them only when each one
+   was checked against its guide frame. `effect="profundidade"` (Follow depth) when the
+   blocks' colors or the checkerboard leak into the video.
 
 ### 8 — Deliver
 In chat: the final video path, the style image, both prompts (each in its own code block,
@@ -161,7 +168,7 @@ already behind the camera: Numpad 0 to compare with the blocking.
 - The checkerboard is only a parallax reference: describe the real floor you want
   ("cracked asphalt") so it does not become a checkered floor.
 
-`style_frame` prompt = the frame only (no motion). `blockout_to_video` prompt = the same
+`style_frame` prompt = the first frame only (no motion). `blockout_to_video` prompt = the same
 world + action + camera.
 
 ## Limits that change the blocking
