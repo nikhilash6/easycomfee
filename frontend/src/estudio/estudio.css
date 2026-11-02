@@ -2645,3 +2645,15 @@ input[type='range'].hf-luz-temp::-webkit-slider-thumb { margin-top: -6px; }
 .mq-grupo > summary small { color: var(--hf-apagado); font-size: 12px; }
 .mq-grupo[open] { padding-bottom: 12px; }
 .mq-grupo > .mq-pacote:first-of-type { margin-top: 0; }
+
+/* Tirar o fundo: o video transparente aparece sobre um xadrez. */
+.hf-vfx-palco[data-xadrez] video { background: repeating-conic-gradient(#3a3a44 0 25%, #24242c 0 50%) 0 0 / 24px 24px; }
+
+/* Ajustes do recorte (Tirar o fundo), abaixo da previa. */
+.hf-recorte { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.hf-recorte-campos { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 18px; }
+.hf-recorte-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--hf-apagado); min-width: 130px; }
+.hf-recorte-campo b { color: var(--hf-texto); font-weight: 600; }
+.hf-recorte-campo input { accent-color: var(--hf-neon); }
+.hf-recorte-baixar { display: flex; gap: 8px; flex-wrap: wrap; }
+.hf-recorte-baixar a { text-decoration: none; }

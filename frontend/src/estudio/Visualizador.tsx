@@ -108,11 +108,12 @@ function origemDe(info: ItemGaleria | null, atual: string): string | null {
 }
 
 /** Antes e depois, lado a lado ou com cortina; videos andam juntos. */
-export function ThenNow({ antes, depois, modo, rotulos = ['Then', 'Now'] }: { antes: string; depois: string; modo: 'lado' | 'cortina'; rotulos?: [string, string] }) {
+export function ThenNow({ antes, depois, modo, rotulos = ['Then', 'Now'], ehVideo }: { antes: string; depois: string; modo: 'lado' | 'cortina'; rotulos?: [string, string]; ehVideo?: boolean }) {
   const [corte, setCorte] = useState(50)
   const vA = useRef<HTMLVideoElement>(null)
   const vD = useRef<HTMLVideoElement>(null)
-  const video = eVideo(depois.split('nome=')[1]?.split('&')[0] ?? '')
+  // Sem nome de arquivo no endereco (o video transparente do /api/alpha), quem chama diz.
+  const video = ehVideo ?? eVideo(depois.split('nome=')[1]?.split('&')[0] ?? '')
   useEffect(() => {
     if (!video) return
     const t = setInterval(() => {

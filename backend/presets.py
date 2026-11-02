@@ -2814,6 +2814,13 @@ VIDEO_TRANSFORMAR = {
                  "nota": "Alagamento, chuva, ondas, respingos. Descreva no texto a água que quer.",
                  "texto": ("The ground is flooded with shallow rushing water, splashes "
                            "and wet reflective surfaces")},
+        # Alpha Gen (02/10/2026): devolve a MASCARA (branco = primeiro plano). O app junta
+        # com o original num video transparente (alpha.py). Prompt vazio, como no cartao
+        # do modelo; acima de 145 quadros a imagem vaza para a mascara.
+        "alpha": {"rotulo": "Tirar o fundo (alfa)",
+                  "lora": "ltx-2.5-22b-ic-lora-alpha-gen-0.9.safetensors",
+                  "nota": "Máscara alfa quadro a quadro, sem fundo verde. O modelo escolhe o primeiro plano.",
+                  "texto": "", "max_quadros": 145},
         "nitidez": {"rotulo": "Tirar o desfoque",
                     "lora": "ltx-2.5-22b-ic-lora-deblur-0.9.safetensors",
                     "nota": "Recupera a nitidez de um vídeo borrado.", "texto": ""},

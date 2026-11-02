@@ -102,7 +102,7 @@ On smaller cards, **Config Models** shows which packages run well on that GPU an
 | **Voice** | Narrate a text, design a voice, or clone one from a short sample | OmniVoice (local) · Qwen3-TTS (Comfy Cloud) |
 | **Cinema Studio** | Direct the shot like a film set: camera, lens, light, film, look and grade cards, shot list, cast, Director mode | Image models + LTX |
 | **Genjutsu** | Swap a character in a video, keeping motion, camera and timing | **Recast** (Qwen Image Edit + LTX Union Control) · Wan Animate 2 · Wan 2.2 Animate Replace · MiniMax H3 Character Swap |
-| **VFX Studio** | One-click effects on your own footage: Day → Night, Remove people, Add water, Swap character, Expand frame, Colorize, Unblur, Remove compression, Refine details, Restore, Follow depth, 3D render → Video, Slow motion, **Video → Depth map** (video or EXR frames) | LTX 2.5 / 2.3 IC-LoRAs · Video Depth Anything |
+| **VFX Studio** | One-click effects on your own footage: **Remove background** (alpha matte, transparent WebM or ProRes 4444, with choke, feather and black/white point controls), Day → Night, Remove people, Add water, Swap character, Expand frame, Colorize, Unblur, Remove compression, Refine details, Restore, Follow depth, 3D render → Video, Slow motion, **Video → Depth map** (video or EXR frames) | LTX 2.5 / 2.3 IC-LoRAs · Video Depth Anything |
 | **Assets** | Everything you made | |
 | **Advanced** | ComfyUI itself, with its node editor, inside the app | |
 

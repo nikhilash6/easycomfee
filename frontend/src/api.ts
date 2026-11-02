@@ -252,6 +252,8 @@ export type Tarefa = {
   altura: number
   /** Mapa de profundidade com quadros EXR (baixados em /api/profundidade/exr/<id>). */
   exr?: boolean
+  /** Tirar o fundo: o arquivo e a mascara; /api/alpha/<id> devolve o video transparente. */
+  alpha?: boolean
 }
 
 export type Andamento = {

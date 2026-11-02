@@ -219,6 +219,18 @@
      "requer_aceite": true
     },
     {
+     "arquivo": "ltx-2.5-22b-ic-lora-alpha-gen-0.9.safetensors",
+     "pasta": "loras",
+     "subpasta": "LTX/2.5/creative_lab",
+     "repo": "Lightricks/LTX-2.5-22b-IC-LoRA-Alpha-Gen",
+     "caminho": "ltx-2.5-22b-ic-lora-alpha-gen-0.9.safetensors",
+     "opcional": true,
+     "rotulo": "Alpha Gen (remove background)",
+     "tamanho": 1308787472,
+     "licenca": "other",
+     "requer_aceite": true
+    },
+    {
      "arquivo": "ltx-2.5-22b-lora-slow-motion-control-1.0.safetensors",
      "pasta": "loras",
      "subpasta": "LTX/2.5/creative_lab",

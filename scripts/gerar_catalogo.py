@@ -125,6 +125,7 @@ pacote("ltx25", "LTX 2.5 Video", "video",
           ("IC-LoRA-Refine-Details", "ltx-2.5-22b-ic-lora-refine-details-1.0", "Refine Details"),
           ("IC-LoRA-Restore", "ltx-2.5-22b-ic-lora-restore-1.0", "Restore"),
           ("IC-LoRA-Water-Simulation", "ltx-2.5-22b-ic-lora-water-simulation-0.9", "Water Simulation"),
+          ("IC-LoRA-Alpha-Gen", "ltx-2.5-22b-ic-lora-alpha-gen-0.9", "Alpha Gen (remove background)"),
           ("LoRA-Slow-Motion-Control", "ltx-2.5-22b-lora-slow-motion-control-1.0", "Slow Motion Control")]],
     ("loras", "LTX/2.5/LTX-2.5-Licon-MSR-V1.safetensors", "LiconStudio/LTX-2.5-Multiple-Subject-Reference", "LTX-2.5-Licon-MSR-V1.safetensors", True, "Multi-subject reference (MSR)"),
 ])

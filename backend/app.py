@@ -29,6 +29,7 @@ import atualizacao
 import biblioteca
 import bridge
 import grafos
+import alpha
 import andamento
 import motores
 import chaves
@@ -572,7 +573,9 @@ class Tarefa:
                 "largura": self.largura, "altura": self.altura,
                 "aviso": self.aviso, "resultado_texto": self.resultado_texto,
                 # O mapa de profundidade pode ter gerado quadros EXR para baixar.
-                "exr": self.pedido.modelo == "profundidade_video" and self.pedido.exr}
+                "exr": self.pedido.modelo == "profundidade_video" and self.pedido.exr,
+                # Tirar o fundo: o resultado e a mascara; /api/alpha monta o video transparente.
+                "alpha": self.pedido.modelo == "transformar_video" and self.pedido.efeito_video == "alpha"}
 
     def registro(self):
         dados = {k: v for k, v in vars(self).items() if not k.startswith("_")}
@@ -2724,6 +2727,31 @@ async def baixar_exr(tarefa_id: str):
     dados = await asyncio.to_thread(zipar)
     return Response(dados, media_type="application/zip", headers={
         "Content-Disposition": f'attachment; filename="depth_exr_{tarefa_id[:8]}.zip"'})
+
+
+@app.get("/api/alpha/{tarefa_id}")
+async def baixar_alpha(tarefa_id: str, formato: str = Query("webm", pattern="^(webm|mov)$"),
+                      borda: int = Query(0, ge=-10, le=10), suavizar: float = Query(0, ge=0, le=10),
+                      preto: float = Query(0, ge=0, le=0.9), branco: float = Query(1, ge=0.1, le=1),
+                      tempo: int = Query(0, ge=0, le=3), inverter: bool = False):
+    """O video com transparencia de um Tirar o fundo: o original com a mascara como alfa,
+    com os ajustes do recorte (borda, suavizar, ponto preto/branco, media entre quadros)."""
+    if branco <= preto:
+        raise HTTPException(400, "o ponto branco precisa ficar acima do preto")
+    ajustes = alpha.Ajustes(borda, round(suavizar, 1), round(preto, 2), round(branco, 2), tempo, inverter)
+    t = TAREFAS.get(tarefa_id)
+    if not t or t.pedido.efeito_video != "alpha" or t.estado != "pronto" or not t.imagens:
+        raise HTTPException(404, "esta tarefa não tem máscara alfa")
+    item = json.loads(t.imagens[0])
+    mascara = _caminho_de_saida(f"{item['subpasta']}/{item['nome']}")
+    original = _video_de_referencia(t.pedido.referencias[0])
+    saida = alpha.nome_saida(config.COMFY_SAIDA / "editor" / f"alpha_{tarefa_id[:8]}", formato, ajustes)
+    try:
+        await asyncio.to_thread(alpha.compor, original, mascara, saida, formato, ajustes)
+    except (OSError, RuntimeError) as e:
+        raise HTTPException(500, f"não consegui montar o vídeo transparente: {e}")
+    return FileResponse(saida, media_type="video/webm" if formato == "webm" else "video/quicktime",
+                        filename=f"alpha_{tarefa_id[:8]}.{formato}")
 
 
 @app.get("/api/nos/editor")

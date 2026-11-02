@@ -199,8 +199,42 @@ async function esperarTarefa(id: string) {
   }
 }
 
+// Ajustes do recorte do Tirar o fundo: aplicados na montagem do video transparente
+// (/api/alpha), sem gerar de novo.
+const RECORTE_NEUTRO = { borda: 0, suavizar: 0, preto: 0, branco: 1, tempo: 0, inverter: false }
+type Recorte = typeof RECORTE_NEUTRO
+const paramsRecorte = (r: Recorte) => new URLSearchParams(Object.entries(r).map(([k, v]) => [k, String(v)])).toString()
+
+function AjustesRecorte({ valor, aoMudar, webm, mov }: { valor: Recorte; aoMudar: (r: Recorte) => void; webm: string; mov: string }) {
+  const barra = (chave: 'borda' | 'suavizar' | 'preto' | 'branco' | 'tempo', rotulo: string, min: number, max: number, passo: number, dica: string) => (
+    <label className="hf-recorte-campo" title={dica}>
+      <span>{rotulo} <b>{valor[chave]}</b></span>
+      <input type="range" min={min} max={max} step={passo} value={valor[chave]}
+        onChange={(e) => aoMudar({ ...valor, [chave]: Number(e.target.value) })} />
+    </label>
+  )
+  return (
+    <div className="hf-recorte">
+      <div className="hf-recorte-campos">
+        {barra('borda', 'Choke / Expand', -10, 10, 1, 'Pixels: negative pulls the edge in (removes background halo), positive pushes it out')}
+        {barra('suavizar', 'Feather', 0, 10, 0.5, 'Softens the edge')}
+        {barra('preto', 'Black point', 0, 0.9, 0.05, 'Faint grey below this becomes transparent')}
+        {barra('branco', 'White point', 0.1, 1, 0.05, 'Grey above this becomes solid')}
+        {barra('tempo', 'Smooth', 0, 3, 1, 'Averages neighbouring frames so the edge does not flicker')}
+        <label className="hf-toggle"><input type="checkbox" checked={valor.inverter} onChange={(e) => aoMudar({ ...valor, inverter: e.target.checked })} /> Invert</label>
+        <button type="button" className="hf-botao-sec" onClick={() => aoMudar(RECORTE_NEUTRO)}>Reset</button>
+      </div>
+      <div className="hf-recorte-baixar">
+        <a className="hf-botao-sec" href={webm} download>Transparent video (.webm)</a>
+        <a className="hf-botao-sec" href={mov} download>ProRes 4444 with alpha (.mov)</a>
+      </div>
+    </div>
+  )
+}
+
 export const APPS: App[] = [
   { id: 'noite', nome: 'Day → Night', frase: 'The same shot at night: dark sky, streetlights and windows on.' },
+  { id: 'alpha', nome: 'Remove background', frase: 'Cuts out the subject with a clean alpha matte, no green screen: hair, smoke and glass included. Up to 6 s. Download it as a transparent video.' },
   { id: 'limpar', nome: 'Remove people', frase: 'Erases people and cars that move and rebuilds the background.' },
   { id: 'agua', nome: 'Add water', frase: 'Flood, rain, waves and splashes. Describe the water you want.', texto: 'The ground is flooded with shallow rushing water' },
   { id: 'trocar', nome: 'Swap character', frase: 'Keeps the motion of the video, takes the look from a new first frame.', imagem: 'New first frame' },
@@ -219,7 +253,7 @@ export const APPS: App[] = [
 // Comfy Cloud has the LTX 2.3 version of most of these LoRAs (nuvem.SUBSTITUTOS);
 // these two exist only in the 2.5 Creative Lab, so they need your own GPU.
 // The layout-to-render LoRA (3D render → Video) is a 2.5 one too.
-const SO_LOCAL = new Set(['restaurar', 'slowmo', 'maquete', 'mapa_profundidade'])
+const SO_LOCAL = new Set(['restaurar', 'slowmo', 'maquete', 'mapa_profundidade', 'alpha'])
 
 export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
   const tarefas = useTarefas()
@@ -530,6 +564,12 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
 
   const tarefaFeita = aplicadoEm ? minhas.find((t) => t.estado === 'pronto' && t.criada_em >= aplicadoEm) : undefined
   const resultado = tarefaFeita ? arquivos(tarefaFeita)[0] : undefined
+  // Tirar o fundo: o resultado e a mascara; o palco mostra o video transparente sobre xadrez.
+  const [recorte, setRecorte] = useState(RECORTE_NEUTRO)
+  const [recorteAplicado, setRecorteAplicado] = useState(RECORTE_NEUTRO)
+  useEffect(() => { const t = window.setTimeout(() => setRecorteAplicado(recorte), 450); return () => window.clearTimeout(t) }, [recorte])
+  const urlRecorte = (formato: 'webm' | 'mov') => tarefaFeita ? `/api/alpha/${tarefaFeita.id}?formato=${formato}&${paramsRecorte(recorteAplicado)}` : ''
+  const transparente = tarefaFeita?.alpha ? urlRecorte('webm') : ''
 
   return (
     <div className="hf-aba hf-img hf-vfx">
@@ -594,13 +634,14 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
               {resultado && <button type="button" onClick={() => abrirVisualizador(resultado)} aria-label="Full screen" title="Full screen with details">⛶</button>}
             </div>
           </div>
-          <div className="hf-vfx-palco">
-            {video && resultado ? <ThenNow antes={urlEntrada(video.nome)} depois={urlImagem(resultado)} modo={comparar} rotulos={['Before', 'After']} />
-              : resultado ? <video src={urlImagem(resultado)} controls autoPlay loop muted playsInline />
+          <div className="hf-vfx-palco" data-xadrez={!!transparente || undefined}>
+            {video && resultado ? <ThenNow antes={urlEntrada(video.nome)} depois={transparente || urlImagem(resultado)} ehVideo={transparente ? true : undefined} modo={comparar} rotulos={['Before', 'After']} />
+              : resultado ? <video src={transparente || urlImagem(resultado)} controls autoPlay loop muted playsInline />
               : video ? <video src={urlEntrada(video.nome)} controls muted playsInline />
               : app ? <><video src={`/exemplos/${app.id}.mp4?v=9`} autoPlay loop muted playsInline /><span className="hf-vfx-exemplo">Example · drop your video on the right</span></>
               : <div className="hf-img-vazio"><b>Pick an effect</b><span>Choose one on the left.</span></div>}
           </div>
+          {transparente && <AjustesRecorte valor={recorte} aoMudar={setRecorte} webm={urlRecorte('webm')} mov={urlRecorte('mov')} />}
         </section>
 
         <aside className="hf-img-col hf-img-dir hf-vfx-dir" aria-label="Effect settings">
@@ -1034,7 +1075,13 @@ export default function AbaApps({ naNuvem }: { naNuvem: boolean }) {
       </>)}
 
       <Galeria tipo="video">
-        {minhas.map((t) => t.exr && t.estado === 'pronto' ? (
+        {minhas.map((t) => t.alpha && t.estado === 'pronto' ? (
+          <div key={t.id} className="hf-com-exr">
+            <CartaoTarefa t={t} />
+            <a className="hf-botao-sec" href={`/api/alpha/${t.id}?formato=webm`} download>Transparent video (.webm)</a>
+            <a className="hf-botao-sec" href={`/api/alpha/${t.id}?formato=mov`} download>ProRes 4444 with alpha (.mov)</a>
+          </div>
+        ) : t.exr && t.estado === 'pronto' ? (
           <div key={t.id} className="hf-com-exr">
             <CartaoTarefa t={t} />
             <a className="hf-botao-sec" href={`/api/profundidade/exr/${t.id}`} download>Download EXR frames (.zip)</a>
